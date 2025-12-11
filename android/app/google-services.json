@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "589537709752",
+    "project_id": "rally-app-6fb75",
+    "storage_bucket": "rally-app-6fb75.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589537709752:android:71cc2863134e0768e16e4d",
+        "android_client_info": {
+          "package_name": "com.gomasa.rally_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvownQ2tuE39njl0yJ3tM8du93sy1cSA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
