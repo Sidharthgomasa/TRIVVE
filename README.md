@@ -75,7 +75,7 @@ TRIVVE/
 ├─ pubspec.yaml
 ├─ pubspec.lock
 ├─ firebase.json
-└─ README.md  <-- (this file - updated)
+└─ README.md
 ```
 
 **Key files to inspect quickly:** `lib/trrive_social_arcade.dart`, `lib/trrive_map_module.dart`, `lib/trrive_cricket_module.dart`, `lib/main.dart`.
