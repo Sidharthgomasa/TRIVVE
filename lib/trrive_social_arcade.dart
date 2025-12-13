@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:ui'; 
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:math'; // 👈 Add this line!
 
 // --- NAVIGATION IMPORTS ---
@@ -412,9 +410,9 @@ class ToolboxScreen extends StatelessWidget {
       appBar: AppBar(title: const Text("TOOLBOX"), backgroundColor: Colors.black, foregroundColor: Colors.white), 
       body: GridView.count(crossAxisCount: 2, padding: const EdgeInsets.all(20), crossAxisSpacing: 15, mainAxisSpacing: 15, children: [
           _toolCard(context, "Sports Board", Icons.sports_cricket, Colors.orange, const TrriveProScorecard()), 
-          _toolCard(context, "Neon Splitter", Icons.attach_money, Colors.greenAccent, NeonSplitterTool()), // No const!
-          _toolCard(context, "Quantum Decider", Icons.casino, Colors.purpleAccent, DecisionMakerTool()),   // No const!
-          _toolCard(context, "Hyper Focus", Icons.timer, Colors.blueAccent, HyperFocusTool()),             // No const!
+          _toolCard(context, "Neon Splitter", Icons.attach_money, Colors.greenAccent, const NeonSplitterTool()), // No const!
+          _toolCard(context, "Quantum Decider", Icons.casino, Colors.purpleAccent, const DecisionMakerTool()),   // No const!
+          _toolCard(context, "Hyper Focus", Icons.timer, Colors.blueAccent, const HyperFocusTool()),             // No const!
           // Inside ToolboxScreen -> build -> GridView children:
           _toolCard(context, "Spin The Bottle", Icons.wine_bar, Colors.pinkAccent, const SpinTheBottleTool()),
           _toolCard(context, "The Jury", Icons.gavel, Colors.amberAccent, const TheJuryTool()),

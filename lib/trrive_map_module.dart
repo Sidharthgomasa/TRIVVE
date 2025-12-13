@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'dart:ui'; // For Glass Effect
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'trrive_cricket_module.dart'; 
+import 'package:geolocator/geolocator.dart';
 
 // ==============================================================================
 // 1. DATA MODELS
@@ -35,15 +35,16 @@ class StaticZone {
 // ==============================================================================
 
 class TrriveNeonMap extends StatefulWidget {
-  const TrriveNeonMap({super.key});
+  final LatLng? focusLocation; 
+  const TrriveNeonMap({super.key, this.focusLocation});
 
   @override
   State<TrriveNeonMap> createState() => _TrriveNeonMapState();
 }
 
 class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateMixin {
-  // 📍 HARDCODED LOCATION (Replace with Geolocator for real GPS)
-  final LatLng userLocation = const LatLng(12.9716, 77.5946); 
+  LatLng _currentPos = const LatLng(51.5, -0.09); 
+  bool _loadingLocation = false;
   
   late final MapController _mapController;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
@@ -56,6 +57,12 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     super.initState();
     _mapController = MapController();
     
+    if (widget.focusLocation != null) {
+      _currentPos = widget.focusLocation!;
+    } else {
+      _locateMe(); 
+    }
+
     staticZones = [
       StaticZone(
         id: "cricket_stadium",
@@ -64,7 +71,7 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
         location: const LatLng(12.9750, 77.6000), 
         icon: Icons.sports_cricket,
         neonColor: Colors.cyanAccent,
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TrriveProScorecard())),
+        onTap: () {}, 
       ),
       StaticZone(
         id: "loot_drop",
@@ -76,6 +83,42 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
         onTap: () => _showLootDialog(),
       ),
     ];
+  }
+
+  Future<void> _locateMe() async {
+    setState(() => _loadingLocation = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) throw "GPS is disabled.";
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) throw "Location permission denied.";
+      }
+      
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      LatLng newPos = LatLng(position.latitude, position.longitude);
+
+      if(mounted) {
+        setState(() {
+          _currentPos = newPos;
+          _loadingLocation = false;
+        });
+        _mapController.move(_currentPos, 16.0);
+        
+        if (_currentUser != null) {
+          FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).update({
+            'lastLat': position.latitude,
+            'lastLng': position.longitude
+          });
+        }
+      }
+    } catch (e) {
+      if(mounted) {
+        setState(() => _loadingLocation = false);
+      }
+    }
   }
 
   Color _getCategoryColor(String cat) {
@@ -98,7 +141,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     }
   }
 
-  // --- ACTION: HOST EVENT DIALOG (UPDATED WITH TIME PICKER) ---
   void _showHostDialog(LatLng pickedLocation) {
     TextEditingController titleCtrl = TextEditingController();
     String selectedCategory = 'Party';
@@ -111,120 +153,19 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20, 
-              top: 20, left: 20, right: 20
-            ),
-            decoration: BoxDecoration(
-              color: Colors.grey[900],
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              border: const Border(top: BorderSide(color: Colors.cyanAccent, width: 2))
-            ),
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, top: 20, left: 20, right: 20),
+            decoration: BoxDecoration(color: Colors.grey[900], borderRadius: const BorderRadius.vertical(top: Radius.circular(25)), border: const Border(top: BorderSide(color: Colors.cyanAccent, width: 2))),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("BROADCAST SIGNAL 📡", style: TextStyle(color: Colors.cyanAccent, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                Text("Lat: ${pickedLocation.latitude.toStringAsFixed(4)}, Lng: ${pickedLocation.longitude.toStringAsFixed(4)}", style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                const SizedBox(height: 20),
-                
-                TextField(
-                  controller: titleCtrl,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: "EVENT TITLE",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
-                    prefixIcon: Icon(Icons.flash_on, color: Colors.cyanAccent)
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // --- TIME PICKER ---
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("START TIME", style: TextStyle(color: Colors.grey, fontSize: 10)),
-                          const SizedBox(height: 5),
-                          InkWell(
-                            onTap: () async {
-                              final TimeOfDay? picked = await showTimePicker(
-                                context: context,
-                                initialTime: selectedTime,
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: ThemeData.dark().copyWith(
-                                      colorScheme: const ColorScheme.dark(primary: Colors.cyanAccent, onPrimary: Colors.black, surface: Colors.grey),
-                                    ),
-                                    child: child!,
-                                  );
-                                },
-                              );
-                              if (picked != null) {
-                                setModalState(() => selectedTime = picked);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                              decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(8)),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.access_time, color: Colors.cyanAccent, size: 20),
-                                  const SizedBox(width: 10),
-                                  Text(selectedTime.format(context), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("DURATION", style: TextStyle(color: Colors.grey, fontSize: 10)),
-                          const SizedBox(height: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                            decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(8)),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.hourglass_bottom, color: Colors.purpleAccent, size: 20),
-                                SizedBox(width: 10),
-                                Text("30 MINS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                TextField(controller: titleCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "EVENT TITLE", labelStyle: TextStyle(color: Colors.grey), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)), prefixIcon: Icon(Icons.flash_on, color: Colors.cyanAccent))),
                 const SizedBox(height: 20),
                 
                 const Text("CATEGORY SIGNAL", style: TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 10),
-                
-                Wrap(
-                  spacing: 10,
-                  children: ["Party", "Sports", "Food", "Work"].map((cat) {
-                    bool isSelected = selectedCategory == cat;
-                    return ChoiceChip(
-                      label: Text(cat),
-                      selected: isSelected,
-                      selectedColor: _getCategoryColor(cat),
-                      backgroundColor: Colors.black,
-                      labelStyle: TextStyle(color: isSelected ? Colors.black : Colors.white),
-                      onSelected: (val) => setModalState(() => selectedCategory = cat),
-                    );
-                  }).toList(),
-                ),
+                Wrap(spacing: 10, children: ["Party", "Sports", "Food", "Work"].map((cat) => ChoiceChip(label: Text(cat), selected: selectedCategory == cat, selectedColor: _getCategoryColor(cat), backgroundColor: Colors.black, labelStyle: TextStyle(color: selectedCategory == cat ? Colors.black : Colors.white), onSelected: (val) => setModalState(() => selectedCategory = cat))).toList()),
                 
                 const SizedBox(height: 30),
                 SizedBox(
@@ -235,17 +176,14 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                     onPressed: () async {
                       if(titleCtrl.text.isEmpty) return;
                       
-                      // 1. CALCULATE TIMESTAMPS
+                      var userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
+                      String? mySquadId = userDoc.data()?['squadId'];
+
                       final now = DateTime.now();
                       final startDateTime = DateTime(now.year, now.month, now.day, selectedTime.hour, selectedTime.minute);
-                      // If selected time is earlier than now (e.g. 2AM selected at 5PM), assume tomorrow
-                      final adjustedStart = startDateTime.isBefore(now.subtract(const Duration(minutes: 15))) 
-                          ? startDateTime.add(const Duration(days: 1)) 
-                          : startDateTime;
-                          
+                      final adjustedStart = startDateTime.isBefore(now.subtract(const Duration(minutes: 15))) ? startDateTime.add(const Duration(days: 1)) : startDateTime;
                       final expiryDateTime = adjustedStart.add(const Duration(minutes: 30));
 
-                      // 2. CREATE EVENT IN MAP (RALLIES)
                       await FirebaseFirestore.instance.collection('rallies').add({
                         'title': titleCtrl.text,
                         'category': selectedCategory,
@@ -253,12 +191,13 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                         'lng': pickedLocation.longitude,
                         'hostId': _currentUser?.uid,
                         'hostName': _currentUser?.displayName ?? 'Anon',
+                        'hostPhoto': _currentUser?.photoURL,
+                        'squadId': mySquadId, 
                         'attendees': [_currentUser?.uid], 
-                        'timestamp': Timestamp.fromDate(adjustedStart), // Start Time
-                        'expiry': Timestamp.fromDate(expiryDateTime),   // End Time (30 mins later)
+                        'timestamp': Timestamp.fromDate(adjustedStart), 
+                        'expiry': Timestamp.fromDate(expiryDateTime), 
                       });
 
-                      // 3. UPDATE USER ID CARD (HISTORY)
                       await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).update({
                         'hostingHistory': FieldValue.arrayUnion([{
                           'title': titleCtrl.text,
@@ -272,7 +211,7 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                       if(context.mounted) {
                         Navigator.pop(context); 
                         setState(() => _isPickingLocation = false);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signal Broadcasted! History Updated. 📡"), backgroundColor: Colors.cyan));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signal Broadcasted! 📡"), backgroundColor: Colors.cyan));
                       }
                     },
                     child: const Text("GO LIVE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
@@ -286,7 +225,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     );
   }
 
-  // --- ACTION: Join/Chat Logic ---
   void _handleEventTap(Map<String, dynamic> data, String docId) {
     bool isJoined = (data['attendees'] as List).contains(_currentUser?.uid);
     Color themeColor = _getCategoryColor(data['category'] ?? '');
@@ -349,7 +287,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     );
   }
 
-  // --- ACTION: Loot ---
   void _showLootDialog() {
     showDialog(
       context: context, 
@@ -381,9 +318,7 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. MAP LAYER
           StreamBuilder<QuerySnapshot>(
-            // 🔥 FILTER: Only show events that haven't expired yet
             stream: FirebaseFirestore.instance
                 .collection('rallies')
                 .where('expiry', isGreaterThan: Timestamp.now()) 
@@ -391,14 +326,12 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
             builder: (context, snapshot) {
               List<Marker> allMarkers = [];
 
-              // User
               allMarkers.add(Marker(
-                point: userLocation,
+                point: _currentPos,
                 width: 80, height: 80,
                 child: const PulsingAvatarMarker(),
               ));
 
-              // Static Zones
               for (var zone in staticZones) {
                 allMarkers.add(Marker(
                   point: zone.location,
@@ -410,7 +343,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                 ));
               }
 
-              // Live Events (Only show if not picking location)
               if (snapshot.hasData && !_isPickingLocation) {
                 for (var doc in snapshot.data!.docs) {
                   var data = doc.data() as Map<String, dynamic>;
@@ -433,12 +365,15 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
 
               return FlutterMap(
                 mapController: _mapController,
-                options: MapOptions(initialCenter: userLocation, initialZoom: 14.5),
+                options: MapOptions(
+                  initialCenter: _currentPos, 
+                  initialZoom: 15.5,
+                ),
                 children: [
                   TileLayer(
                     urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                    userAgentPackageName: 'com.trivve.app',
                     subdomains: const ['a', 'b', 'c', 'd'],
+                    retinaMode: RetinaMode.isHighDensity(context), // ✅ FIXED HERE
                   ),
                   MarkerLayer(markers: allMarkers),
                 ],
@@ -446,7 +381,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
             }
           ),
 
-          // 2. HUD LAYER
           if (!_isPickingLocation)
             Positioned(
               top: 40, left: 20, right: 20,
@@ -466,9 +400,9 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                             Text("TRIVVE WORLD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2))
                         ]),
                         Row(children: [
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
+                            Container(width: 8, height: 8, decoration: BoxDecoration(color: _loadingLocation ? Colors.orange : Colors.greenAccent, shape: BoxShape.circle)),
                             const SizedBox(width: 5),
-                            const Text("LIVE", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 10)),
+                            Text(_loadingLocation ? "SCANNING..." : "GPS LOCKED", style: TextStyle(color: _loadingLocation ? Colors.orange : Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 10)),
                         ])
                       ],
                     ),
@@ -477,13 +411,12 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
               ),
             ),
 
-          // 3. TARGETING OVERLAY (Only in Picker Mode)
           if (_isPickingLocation)
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.location_on, size: 50, color: Colors.cyanAccent),
+                  const Icon(Icons.location_on, size: 50, color: Colors.cyanAccent),
                   Container(width: 4, height: 40, color: Colors.cyanAccent),
                   Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2))),
                 ],
@@ -502,10 +435,8 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                ),
              ),
 
-          // 4. ACTION BUTTONS
           Positioned(
-            bottom: 30, right: 20,
-            left: 20,
+            bottom: 30, right: 20, left: 20,
             child: _isPickingLocation 
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -530,11 +461,11 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
               : Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                     FloatingActionButton.small(
+                      FloatingActionButton.small(
                       heroTag: "center",
                       backgroundColor: Colors.grey[900],
-                      child: const Icon(Icons.my_location, color: Colors.white),
-                      onPressed: () => _mapController.move(userLocation, 15),
+                      onPressed: _locateMe,
+                      child: const Icon(Icons.my_location, color: Colors.white), 
                     ),
                     const SizedBox(width: 15),
                     FloatingActionButton.extended(
@@ -552,10 +483,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     );
   }
 }
-
-// ==============================================================================
-// 3. EVENT CHAT SCREEN (Embedded)
-// ==============================================================================
 
 class EventChatScreen extends StatefulWidget {
   final String rallyId;
@@ -666,10 +593,6 @@ class _EventChatScreenState extends State<EventChatScreen> {
     );
   }
 }
-
-// ==============================================================================
-// 4. ANIMATED MARKERS
-// ==============================================================================
 
 class PulsingAvatarMarker extends StatefulWidget {
   const PulsingAvatarMarker({super.key});

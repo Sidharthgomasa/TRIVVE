@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // IMPORT THIS
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ REQUIRED IMPORT
+import 'package:trivve/trivve_college_spaces.dart';
 
-// --- IMPORT YOUR MODULES ---
-import 'trrive_map_module.dart';       
-import 'trrive_social_arcade.dart';    
-import 'package:trivve/trrive_squad_module.dart';
+// --- MODULE IMPORTS ---
+import 'package:trivve/trrive_map_module.dart';
+import 'package:trivve/trrive_social_arcade.dart';
+import 'package:trivve/trrive_friends_module.dart'; // Make sure this is imported
 import 'package:trivve/gamepage.dart';
+import 'package:trivve/trrive_squad_module.dart';
+import 'package:trivve/username_setup.dart';
+import 'package:google_fonts/google_fonts.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // ⚠️ YOUR FIREBASE KEYS MUST BE HERE
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyCyTu2zhg2qpULwkvtKj__txLGJ6v4gl5g",
@@ -38,6 +42,10 @@ class TrivveApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.black,
         primarySwatch: Colors.cyan,
         useMaterial3: true,
+        textTheme: GoogleFonts.notoSansTextTheme(Theme.of(context).textTheme).apply(
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.black,
           elevation: 0,
@@ -52,14 +60,13 @@ class TrivveApp extends StatelessWidget {
           elevation: 20,
         )
       ),
-      // ✅ FIX: Wait for Auth before loading the app
       home: const AuthWrapper(), 
     );
   }
 }
 
 // =============================================================================
-// AUTH WRAPPER (Prevents Null Errors on Startup)
+// AUTH WRAPPER
 // =============================================================================
 
 class AuthWrapper extends StatelessWidget {
@@ -70,28 +77,41 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // 1. If Firebase is checking... show loading
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(child: CircularProgressIndicator(color: Colors.cyanAccent)),
-          );
+          return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.cyanAccent)));
         }
 
-        // 2. If User is NOT logged in... show Login Screen directly
         if (!snapshot.hasData) {
           return const LoginScreen();
         }
 
-        // 3. If User IS logged in... show the App
-        return const ResponsiveContainer(child: TrivveMainScaffold());
+        // USER IS LOGGED IN -> CHECK IF USERNAME IS SET
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('users').doc(snapshot.data!.uid).get(),
+          builder: (context, userSnap) {
+            if (userSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.purpleAccent)));
+            }
+
+            // If user doc exists AND has 'username' field -> Go to App
+            if (userSnap.data != null && userSnap.data!.exists) {
+              Map<String, dynamic>? data = userSnap.data!.data() as Map<String, dynamic>?;
+              if (data != null && data.containsKey('username')) {
+                return const ResponsiveContainer(child: TrivveMainScaffold());
+              }
+            }
+            
+            // Otherwise -> Go to Setup
+            return const UsernameSetupScreen();
+          },
+        );
       },
     );
   }
 }
 
 // =============================================================================
-// SIMPLE LOGIN SCREEN (If user is not logged in)
+// LOGIN SCREEN (FIXED: CREATES USER IN DB)
 // =============================================================================
 
 class LoginScreen extends StatelessWidget {
@@ -118,7 +138,28 @@ class LoginScreen extends StatelessWidget {
               ),
               onPressed: () async {
                 try {
-                  await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+                  // 1. Sign In
+                  UserCredential cred = await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+                  User? user = cred.user;
+
+                  if (user != null) {
+                    // 2. CHECK IF USER EXISTS
+                    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+                    if (!doc.exists) {
+                      // 3. CREATE PROFILE IF NEW
+                      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                        'displayName': user.displayName ?? "Unknown Agent",
+                        'email': user.email,
+                        'photoUrl': user.photoURL,
+                        'uid': user.uid,
+                        'createdAt': FieldValue.serverTimestamp(),
+                        'wins': 0,
+                        'aura': 0,
+                        'xp': 0,
+                      });
+                    }
+                  }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: $e")));
                 }
@@ -132,7 +173,7 @@ class LoginScreen extends StatelessWidget {
 }
 
 // =============================================================================
-// 📱 RESPONSIVE WRAPPER
+// RESPONSIVE CONTAINER
 // =============================================================================
 
 class ResponsiveContainer extends StatelessWidget {
@@ -184,7 +225,7 @@ class ResponsiveContainer extends StatelessWidget {
 }
 
 // =============================================================================
-// THE MAIN NAVIGATION DOCK
+// MAIN NAVIGATION DOCK
 // =============================================================================
 
 class TrivveMainScaffold extends StatefulWidget {
@@ -198,10 +239,13 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
   int _currentIndex = 1;
 
   final List<Widget> _screens = [
-    const TrriveNeonMap(),      
-    const HomeScreen(),         
-    const GameLobby(),          
-    const ToolboxScreen(),      
+    const TrriveNeonMap(),
+    const HomeScreen(),
+    const GameLobby(),
+    const SquadScreen(),
+    const CollegeSpacesHub(),
+    const FriendsScreen(), // Added Friends Screen as 5th Tab
+   
   ];
 
   @override
@@ -235,10 +279,21 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
               label: "ARCADE",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.handyman_outlined),
-              activeIcon: Icon(Icons.handyman, shadows: [Shadow(color: Colors.orangeAccent, blurRadius: 10)]),
-              label: "TOOLS",
+              icon: Icon(Icons.shield_outlined),
+              activeIcon: Icon(Icons.shield, shadows: [Shadow(color: Colors.orangeAccent, blurRadius: 10)]),
+              label: "SQUAD",
             ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.school_outlined),
+              activeIcon: Icon(Icons.school, shadows: [Shadow(color: Colors.yellowAccent, blurRadius: 10)]),
+              label: "CAMPUS",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people, shadows: [Shadow(color: Colors.pinkAccent, blurRadius: 10)]),
+              label: "SOCIAL",
+            ),
+            
           ],
         ),
       ),

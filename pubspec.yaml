@@ -32,7 +32,8 @@ dependencies:
   image_picker: ^1.0.7       
   flutter_image_compress: ^2.1.0 # To shrink it to 150KB
   cached_network_image: ^3.3.1   # To save bandwidth (don't re-download same pics)
-
+  google_fonts: ^6.2.1
+  timeago: ^3.6.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

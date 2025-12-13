@@ -1,32 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:label="trivve"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        ```
-
-#### For iOS (Mac Users)
-Open this file: `ios/Runner/Info.plist`
-Add these keys inside the `<dict>` tag:
-
-```xml
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>We need your location to show local events on the map.</string>
-<key>NSLocationAlwaysUsageDescription</key>
-<string>We need your location to show local events on the map.</string>
-
-    <application
-        android:label="rally_app"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
