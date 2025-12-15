@@ -34,7 +34,7 @@ dependencies:
   cached_network_image: ^3.3.1   # To save bandwidth (don't re-download same pics)
   google_fonts: ^6.2.1
   timeago: ^3.6.1
-  google_maps_flutter: ^2.14.0
+  google_maps_flutter: ^2.10.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
