@@ -13,7 +13,6 @@ import 'package:trivve/gamepage.dart';
 import 'package:trivve/trrive_squad_module.dart';
 import 'package:trivve/username_setup.dart';
 import 'package:trivve/trivve_college_spaces.dart';
-import 'package:trivve/the_hunt.dart'; // ✅ "The Hunt" is imported
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -183,8 +182,7 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
   // ✅ Make sure this list matches your BottomNavigationBar items EXACTLY
   final List<Widget> _screens = [
     const TrriveNeonMap(),      // Index 0: World
-    const HomeScreen(),         // Index 1: Hub
-    const TheHuntScreen(),      // Index 2: Hunt
+    const HomeScreen(),         // Index 1: Hub      // Index 2: Hunt
     const GameLobby(),          // Index 3: Arcade
     const SquadScreen(),        // Index 4: Squad
     const CollegeSpacesHub(),   // Index 5: Campus
