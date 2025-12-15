@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ REQUIRED IMPORT
-import 'package:trivve/trivve_college_spaces.dart';
-// ... other imports
-import 'package:trivve/the_hunt.dart'; // ✅ Add this line
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // --- MODULE IMPORTS ---
+import 'login_screen.dart'; // ✅ Using the separate, working file
 import 'package:trivve/trrive_map_module.dart';
 import 'package:trivve/trrive_social_arcade.dart';
-import 'package:trivve/trrive_friends_module.dart'; // Make sure this is imported
+import 'package:trivve/trrive_friends_module.dart';
 import 'package:trivve/gamepage.dart';
 import 'package:trivve/trrive_squad_module.dart';
 import 'package:trivve/username_setup.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:trivve/trivve_college_spaces.dart';
+import 'package:trivve/the_hunt.dart'; // ✅ "The Hunt" is imported
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -83,8 +84,9 @@ class AuthWrapper extends StatelessWidget {
           return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.cyanAccent)));
         }
 
+        // ✅ If NOT logged in, show the LoginScreen from the separate file
         if (!snapshot.hasData) {
-          return const LoginScreen();
+          return const LoginScreen(); 
         }
 
         // USER IS LOGGED IN -> CHECK IF USERNAME IS SET
@@ -108,68 +110,6 @@ class AuthWrapper extends StatelessWidget {
           },
         );
       },
-    );
-  }
-}
-
-// =============================================================================
-// LOGIN SCREEN (FIXED: CREATES USER IN DB)
-// =============================================================================
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text("ＴＲＩＶＶＥ", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 5, fontSize: 40, color: Colors.cyanAccent)),
-            const SizedBox(height: 10),
-            const Text("Social Arcade & Live Map", style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 50),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.login, color: Colors.black),
-              label: const Text("SIGN IN WITH GOOGLE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15)
-              ),
-              onPressed: () async {
-                try {
-                  // 1. Sign In
-                  UserCredential cred = await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
-                  User? user = cred.user;
-
-                  if (user != null) {
-                    // 2. CHECK IF USER EXISTS
-                    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-
-                    if (!doc.exists) {
-                      // 3. CREATE PROFILE IF NEW
-                      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-                        'displayName': user.displayName ?? "Unknown Agent",
-                        'email': user.email,
-                        'photoUrl': user.photoURL,
-                        'uid': user.uid,
-                        'createdAt': FieldValue.serverTimestamp(),
-                        'wins': 0,
-                        'aura': 0,
-                        'xp': 0,
-                      });
-                    }
-                  }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: $e")));
-                }
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -240,15 +180,15 @@ class TrivveMainScaffold extends StatefulWidget {
 class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
   int _currentIndex = 1;
 
+  // ✅ Make sure this list matches your BottomNavigationBar items EXACTLY
   final List<Widget> _screens = [
-    const TrriveNeonMap(),
-    const HomeScreen(),
-    const TheHuntScreen(),
-    const GameLobby(),
-    const SquadScreen(),
-    const CollegeSpacesHub(),
-    const FriendsScreen(), // Added Friends Screen as 5th Tab
-   
+    const TrriveNeonMap(),      // Index 0: World
+    const HomeScreen(),         // Index 1: Hub
+    const TheHuntScreen(),      // Index 2: Hunt
+    const GameLobby(),          // Index 3: Arcade
+    const SquadScreen(),        // Index 4: Squad
+    const CollegeSpacesHub(),   // Index 5: Campus
+    const FriendsScreen(),      // Index 6: Social
   ];
 
   @override
@@ -276,9 +216,8 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
               activeIcon: Icon(Icons.home, shadows: [Shadow(color: Colors.purpleAccent, blurRadius: 10)]),
               label: "HUB",
             ),
-            // ✅ 3. THE HUNT (NEW ITEM)
             BottomNavigationBarItem(
-              icon: Icon(Icons.gps_fixed), // Target Icon
+              icon: Icon(Icons.gps_fixed),
               activeIcon: Icon(Icons.gps_fixed, color: Colors.redAccent, shadows: [Shadow(color: Colors.red, blurRadius: 15)]),
               label: "HUNT",
             ),
@@ -302,7 +241,6 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
               activeIcon: Icon(Icons.people, shadows: [Shadow(color: Colors.pinkAccent, blurRadius: 10)]),
               label: "SOCIAL",
             ),
-            
           ],
         ),
       ),
