@@ -205,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   const SizedBox(height: 15),
                   
-                  _dashboardCard("ARCADE", "10 Multiplayer Games", Icons.gamepad_outlined, [Colors.purpleAccent, Colors.deepPurple],
+                  _dashboardCard("ARCADE", "Multiplayer Games", Icons.gamepad_outlined, [Colors.purpleAccent, Colors.deepPurple],
                       () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GameLobby()))), // 👈 LINKS TO NEW GAMEPAGE.DART
                   
                   const SizedBox(height: 15),
@@ -409,7 +409,8 @@ class ToolboxScreen extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("TOOLBOX"), backgroundColor: Colors.black, foregroundColor: Colors.white), 
       body: GridView.count(crossAxisCount: 2, padding: const EdgeInsets.all(20), crossAxisSpacing: 15, mainAxisSpacing: 15, children: [
-          _toolCard(context, "Sports Board", Icons.sports_cricket, Colors.orange, const TrriveProScorecard()), 
+          // ✅ Use the new Class Name "CricketAppMaster"
+          _toolCard(context, "Sports Board", Icons.sports_cricket, Colors.orange, const TrriveCricketModule()),
           _toolCard(context, "Neon Splitter", Icons.attach_money, Colors.greenAccent, const NeonSplitterTool()), // No const!
           _toolCard(context, "Quantum Decider", Icons.casino, Colors.purpleAccent, const DecisionMakerTool()),   // No const!
           _toolCard(context, "Hyper Focus", Icons.timer, Colors.blueAccent, const HyperFocusTool()),             // No const!

@@ -43,8 +43,9 @@ class TrriveNeonMap extends StatefulWidget {
 }
 
 class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateMixin {
+  // Default to London (Safe Fallback)
   LatLng _currentPos = const LatLng(51.5, -0.09); 
-  bool _loadingLocation = false;
+  bool _loadingLocation = true; // Start true to trigger loading UI
   
   late final MapController _mapController;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
@@ -59,9 +60,9 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     
     if (widget.focusLocation != null) {
       _currentPos = widget.focusLocation!;
-    } else {
-      _locateMe(); 
-    }
+      _loadingLocation = false;
+    } 
+    // Note: _locateMe is now called in onMapReady to ensure controller is ready
 
     staticZones = [
       StaticZone(
@@ -85,19 +86,36 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     ];
   }
 
+  // 🛑 FIXED LOCATION FUNCTION
   Future<void> _locateMe() async {
+    if (!mounted) return;
     setState(() => _loadingLocation = true);
+    
     try {
+      // 1. Check Service
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) throw "GPS is disabled.";
+      if (!serviceEnabled) {
+        throw "GPS is disabled. Please turn it on.";
+      }
 
+      // 2. Check Permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) throw "Location permission denied.";
+        if (permission == LocationPermission.denied) {
+          throw "Location permission denied.";
+        }
       }
       
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (permission == LocationPermission.deniedForever) {
+        throw "Location permanently denied. Check settings.";
+      }
+      
+      // 3. Get Position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high
+      );
+      
       LatLng newPos = LatLng(position.latitude, position.longitude);
 
       if(mounted) {
@@ -105,8 +123,11 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
           _currentPos = newPos;
           _loadingLocation = false;
         });
+        
+        // 4. Move Map (Safe Move)
         _mapController.move(_currentPos, 16.0);
         
+        // 5. Update Database
         if (_currentUser != null) {
           FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).update({
             'lastLat': position.latitude,
@@ -117,6 +138,9 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
     } catch (e) {
       if(mounted) {
         setState(() => _loadingLocation = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("GPS Error: $e"), backgroundColor: Colors.red)
+        );
       }
     }
   }
@@ -326,12 +350,14 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
             builder: (context, snapshot) {
               List<Marker> allMarkers = [];
 
+              // User Location Marker
               allMarkers.add(Marker(
                 point: _currentPos,
                 width: 80, height: 80,
                 child: const PulsingAvatarMarker(),
               ));
 
+              // Static Zones
               for (var zone in staticZones) {
                 allMarkers.add(Marker(
                   point: zone.location,
@@ -343,6 +369,7 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                 ));
               }
 
+              // Dynamic Events from Firestore
               if (snapshot.hasData && !_isPickingLocation) {
                 for (var doc in snapshot.data!.docs) {
                   var data = doc.data() as Map<String, dynamic>;
@@ -368,12 +395,18 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
                 options: MapOptions(
                   initialCenter: _currentPos, 
                   initialZoom: 15.5,
+                  // 🛑 FIXED: Calls locateMe when map is actually ready
+                  onMapReady: () {
+                    if (widget.focusLocation == null) {
+                       _locateMe();
+                    }
+                  }
                 ),
                 children: [
                   TileLayer(
                     urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     subdomains: const ['a', 'b', 'c', 'd'],
-                    retinaMode: RetinaMode.isHighDensity(context), // ✅ FIXED HERE
+                    retinaMode: RetinaMode.isHighDensity(context),
                   ),
                   MarkerLayer(markers: allMarkers),
                 ],
