@@ -11,19 +11,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 1. Setup Java 17
+    # 1. Setup Environment
     - uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    # 2. Setup Latest Flutter
     - uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
         cache: true
 
-    # 3. 🚨 THE NUCLEAR FIX: Back up key -> Delete broken folder -> Regenerate
+    # 2. THE FACTORY RESET (Cleans up corruption)
     - name: Factory Reset Android Folder
       run: |
         echo "Backing up Google Services..."
@@ -38,21 +37,31 @@ jobs:
         echo "Restoring Google Services..."
         mv /tmp/google-services.json android/app/google-services.json
 
-    # 4. Bump SDK Version (Fixes 'geolocator' errors in new project)
-    - name: Fix MinSDK for Geolocator
+    # 3. 🚨 BULLETPROOF PERMISSION INJECTION
+    # This finds the <application> tag (which always exists) and puts permissions right before it.
+    - name: Inject Permissions
       run: |
-        # Use sed to replace default minSdk with 23
+        sed -i 's/<application/    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"\/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"\/>\n    <application/g' android/app/src/main/AndroidManifest.xml
+
+    # 4. FIX SDK VERSIONS
+    - name: Fix MinSDK for Dependencies
+      run: |
         sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle.kts || sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
 
-    # 5. Build
+    # 5. GENERATE ICONS & BUILD
     - run: flutter pub get
+    
+    # ✅ This ensures the Icon exists even after the reset
+    - name: Generate App Icons
+      run: dart run flutter_launcher_icons
+
     - run: flutter build apk --debug
 
-    # 6. ✨ RENAME STEP: Change 'app-debug.apk' to 'TRIVVE.apk'
+    # 6. RENAME TO TRIVVE.apk
     - name: Rename APK
       run: mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/TRIVVE.apk
 
-    # 7. Upload the APK (Now named TRIVVE_APP.zip containing TRIVVE.apk)
+    # 7. UPLOAD
     - uses: actions/upload-artifact@v4
       with:
         name: TRIVVE_APP
