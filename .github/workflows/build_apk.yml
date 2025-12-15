@@ -48,8 +48,12 @@ jobs:
     - run: flutter pub get
     - run: flutter build apk --debug
 
-    # 6. Upload
+    # 6. ✨ RENAME STEP: Change 'app-debug.apk' to 'TRIVVE.apk'
+    - name: Rename APK
+      run: mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/TRIVVE.apk
+
+    # 7. Upload the APK (Now named TRIVVE_APP.zip containing TRIVVE.apk)
     - uses: actions/upload-artifact@v4
       with:
-        name: release-apk
-        path: build/app/outputs/flutter-apk/app-debug.apk
+        name: TRIVVE_APP
+        path: build/app/outputs/flutter-apk/TRIVVE.apk
