@@ -1,0 +1,36 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # 1. Setup Java (Required for Android build)
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    # 2. Setup Flutter
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0' # Or your version
+        channel: 'stable'
+
+    # 3. Get Packages
+    - run: flutter pub get
+
+    # 4. Build the APK
+    - run: flutter build apk --debug
+
+    # 5. Upload the APK so you can download it
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: build/app/outputs/flutter-apk/app-debug.apk

@@ -13,7 +13,7 @@ dependencies:
   # Map & Location (Consolidated)
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
-  geolocator: ^13.0.1
+  geolocator: ^14.0.1
   url_launcher: ^6.2.0
 
   # Firebase Core & Auth
@@ -34,6 +34,7 @@ dependencies:
   cached_network_image: ^3.3.1   # To save bandwidth (don't re-download same pics)
   google_fonts: ^6.2.1
   timeago: ^3.6.1
+  google_maps_flutter: ^2.14.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

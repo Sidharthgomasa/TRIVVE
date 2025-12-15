@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:trivve/trivve_college_spaces.dart';
 
 // =============================================================================
 // ⚡ TRIVVE FRIENDS & LEGACY MODULE

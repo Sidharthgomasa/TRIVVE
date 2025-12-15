@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ REQUIRED IMPORT
 import 'package:trivve/trivve_college_spaces.dart';
+// ... other imports
+import 'package:trivve/the_hunt.dart'; // ✅ Add this line
 
 // --- MODULE IMPORTS ---
 import 'package:trivve/trrive_map_module.dart';
@@ -241,6 +243,7 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
   final List<Widget> _screens = [
     const TrriveNeonMap(),
     const HomeScreen(),
+    const TheHuntScreen(),
     const GameLobby(),
     const SquadScreen(),
     const CollegeSpacesHub(),
@@ -272,6 +275,12 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home, shadows: [Shadow(color: Colors.purpleAccent, blurRadius: 10)]),
               label: "HUB",
+            ),
+            // ✅ 3. THE HUNT (NEW ITEM)
+            BottomNavigationBarItem(
+              icon: Icon(Icons.gps_fixed), // Target Icon
+              activeIcon: Icon(Icons.gps_fixed, color: Colors.redAccent, shadows: [Shadow(color: Colors.red, blurRadius: 15)]),
+              label: "HUNT",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.gamepad_outlined),

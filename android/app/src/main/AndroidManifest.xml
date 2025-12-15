@@ -1,10 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.trivve">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
-        android:label="trivve"
+        android:label="Trivve"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
@@ -28,6 +28,10 @@
             </intent-filter>
         </activity>
         
+        <meta-data 
+            android:name="com.google.android.geo.API_KEY" 
+            android:value="AIzaSyCyTu2zhg2qpULwkvtKj__txLGJ6v4gl5g"/>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
