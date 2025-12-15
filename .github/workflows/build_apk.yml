@@ -11,25 +11,29 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    # 1. Setup Java (Required for Android build)
+    # 1. Setup Java 
     - uses: actions/setup-java@v3
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    # 2. Setup Flutter
+    # 2. Setup Flutter (UPDATED TO NEW VERSION) ✅
     - uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.0' # Or your version
+        flutter-version: '3.27.0' # This fixes the Dart SDK errors
         channel: 'stable'
 
     # 3. Get Packages
     - run: flutter pub get
 
-    # 4. Build the APK
+    # 4. Fix Permissions (REQUIRED for Linux build) ✅
+    - name: Fix Gradle Permissions
+      run: chmod +x android/gradlew
+
+    # 5. Build the APK
     - run: flutter build apk --debug
 
-    # 5. Upload the APK so you can download it
+    # 6. Upload the APK
     - uses: actions/upload-artifact@v4
       with:
         name: release-apk
