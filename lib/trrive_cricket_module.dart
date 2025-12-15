@@ -451,7 +451,7 @@ class _TrriveCricketModuleState extends State<TrriveCricketModule> {
             ]),
           ),
           steps: [
-            Step(title: const Text("Match Info"), content: Column(children: [_input(_team1Ctrl, "Home Team"), SizedBox(height:10), _input(_team2Ctrl, "Away Team"), SizedBox(height:10), _input(_oversCtrl, "Overs", isNum: true)]), isActive: _currentStep>=0),
+            Step(title: const Text("Match Info"), content: Column(children: [_input(_team1Ctrl, "Home Team"), const SizedBox(height:10), _input(_team2Ctrl, "Away Team"), const SizedBox(height:10), _input(_oversCtrl, "Overs", isNum: true)]), isActive: _currentStep>=0),
             Step(title: Text("${_team1Ctrl.text} Squad"), content: Column(children: team1Players.asMap().entries.map((e)=>Padding(padding:const EdgeInsets.only(bottom:5), child:_input(e.value, "P${e.key+1}"))).toList()), isActive: _currentStep>=1),
             Step(title: Text("${_team2Ctrl.text} Squad"), content: Column(children: team2Players.asMap().entries.map((e)=>Padding(padding:const EdgeInsets.only(bottom:5), child:_input(e.value, "P${e.key+1}"))).toList()), isActive: _currentStep>=2),
           ],
@@ -461,8 +461,11 @@ class _TrriveCricketModuleState extends State<TrriveCricketModule> {
   }
 
   void _nextStep() {
-    if (_currentStep < 2) setState(() => _currentStep++);
-    else _startMatch();
+    if (_currentStep < 2) {
+      setState(() => _currentStep++);
+    } else {
+      _startMatch();
+    }
   }
 
   void _startMatch() {

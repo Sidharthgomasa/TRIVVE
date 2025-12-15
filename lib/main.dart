@@ -217,11 +217,6 @@ class _TrivveMainScaffoldState extends State<TrivveMainScaffold> {
               label: "HUB",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.gps_fixed),
-              activeIcon: Icon(Icons.gps_fixed, color: Colors.redAccent, shadows: [Shadow(color: Colors.red, blurRadius: 15)]),
-              label: "HUNT",
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.gamepad_outlined),
               activeIcon: Icon(Icons.gamepad, shadows: [Shadow(color: Colors.greenAccent, blurRadius: 10)]),
               label: "ARCADE",
