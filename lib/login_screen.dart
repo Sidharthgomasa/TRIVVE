@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // ✅ Added this import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,10 +15,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   bool isLoading = false;
 
-  // 2. The Login Logic (The code I gave you earlier)
+  // 2. Email/Password Logic (Existing)
   Future<void> _signIn() async {
     setState(() => isLoading = true);
-    
     try {
       // Try to Login
       await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -32,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
           password: passwordController.text.trim(),
         );
       } catch (e) {
-        // If both fail, show error
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Error: ${e.toString()}")),
@@ -40,7 +39,39 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     }
-    
+    if (mounted) setState(() => isLoading = false);
+  }
+
+  // 3. ✅ Google Sign-In Logic (New)
+  Future<void> _signInWithGoogle() async {
+    setState(() => isLoading = true);
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser != null) {
+        // Obtain the auth details from the request
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+        // Create a new credential
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        // Sign in to Firebase with the user credentials
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Google Sign-In Failed: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
     if (mounted) setState(() => isLoading = false);
   }
 
@@ -56,10 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
             // Logo or Icon
             const Icon(Icons.lock_open, size: 80, color: Colors.redAccent),
             const SizedBox(height: 20),
-            
+
             const Text(
               "TRIVVE ACCESS",
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2),
             ),
             const SizedBox(height: 40),
 
@@ -72,7 +107,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 filled: true,
                 fillColor: Colors.grey[900],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 prefixIcon: const Icon(Icons.email, color: Colors.redAccent),
               ),
             ),
@@ -88,31 +124,53 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 filled: true,
                 fillColor: Colors.grey[900],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 prefixIcon: const Icon(Icons.key, color: Colors.redAccent),
               ),
             ),
             const SizedBox(height: 40),
 
-            // The Button
+            // The 'ENTER THE SYSTEM' Button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent),
                 onPressed: isLoading ? null : _signIn,
-                child: isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("ENTER THE SYSTEM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("ENTER THE SYSTEM",
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            Text(
-              "Using Email/Password because Google Login is disabled for Beta.",
-              style: TextStyle(color: Colors.grey[700], fontSize: 12),
-              textAlign: TextAlign.center,
-            )
+
+            // Divider Text
+            const Text("— OR —", style: TextStyle(color: Colors.grey)),
+
+            const SizedBox(height: 20),
+
+            // ✅ The New Google Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black, // Text/Icon color
+                ),
+                onPressed: isLoading ? null : _signInWithGoogle,
+                icon: const Icon(Icons.g_mobiledata, size: 35), // Google Icon
+                label: const Text(
+                  "CONTINUE WITH GOOGLE",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
           ],
         ),
       ),
