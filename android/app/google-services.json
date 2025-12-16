@@ -7,6 +7,35 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:589537709752:android:85d598f18df839a1e16e4d",
+        "android_client_info": {
+          "package_name": "com.example.trivve"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589537709752-9cmm0ou4ocij5hklura336uep5mcqc94.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvownQ2tuE39njl0yJ3tM8du93sy1cSA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589537709752-9cmm0ou4ocij5hklura336uep5mcqc94.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:589537709752:android:71cc2863134e0768e16e4d",
         "android_client_info": {
           "package_name": "com.gomasa.rally_app"

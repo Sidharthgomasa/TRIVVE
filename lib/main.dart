@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'firebase_options.dart';
 
 // --- MODULE IMPORTS ---
 import 'login_screen.dart'; // ✅ Using the separate, working file
@@ -17,16 +18,10 @@ import 'package:trivve/trivve_college_spaces.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyCyTu2zhg2qpULwkvtKj__txLGJ6v4gl5g",
-      authDomain: "rally-app-6fb75.firebaseapp.com",
-      projectId: "rally-app-6fb75",
-      storageBucket: "rally-app-6fb75.firebasestorage.app",
-      messagingSenderId: "589537709752",
-      appId: "1:589537709752:web:abbb40f34130ed53e16e4d",
-    ),
-  ); 
+  // PASTE THIS INSTEAD
+await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+); 
   
   runApp(const TrivveApp());
 }

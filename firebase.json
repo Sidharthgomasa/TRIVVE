@@ -1,16 +1,1 @@
-{
-  "hosting": {
-    "public": "build/web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
-}
+{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"rally-app-6fb75","appId":"1:589537709752:android:85d598f18df839a1e16e4d","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"rally-app-6fb75","configurations":{"android":"1:589537709752:android:85d598f18df839a1e16e4d","ios":"1:589537709752:ios:b94ca954b5058ebae16e4d","macos":"1:589537709752:ios:b94ca954b5058ebae16e4d","web":"1:589537709752:web:abbb40f34130ed53e16e4d","windows":"1:589537709752:web:980ed2fe5d28a8cbe16e4d"}}}}}}

@@ -45,6 +45,7 @@ class TrriveNeonMap extends StatefulWidget {
 class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateMixin {
   // Default to London (Safe Fallback)
   LatLng _currentPos = const LatLng(51.5, -0.09); 
+  LatLng? _lastSavedPos;
   bool _loadingLocation = true; // Start true to trigger loading UI
   
   late final MapController _mapController;
@@ -87,31 +88,23 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
   }
 
   // 🛑 FIXED LOCATION FUNCTION
-  Future<void> _locateMe() async {
+Future<void> _locateMe() async {
     if (!mounted) return;
     setState(() => _loadingLocation = true);
     
     try {
-      // 1. Check Service
+      // 1. Check Service & Permissions (Same as before)
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw "GPS is disabled. Please turn it on.";
-      }
+      if (!serviceEnabled) throw "GPS is disabled. Please turn it on.";
 
-      // 2. Check Permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw "Location permission denied.";
-        }
+        if (permission == LocationPermission.denied) throw "Location permission denied.";
       }
+      if (permission == LocationPermission.deniedForever) throw "Location permanently denied.";
       
-      if (permission == LocationPermission.deniedForever) {
-        throw "Location permanently denied. Check settings.";
-      }
-      
-      // 3. Get Position
+      // 2. Get Position
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high
       );
@@ -124,16 +117,34 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
           _loadingLocation = false;
         });
         
-        // 4. Move Map (Safe Move)
         _mapController.move(_currentPos, 16.0);
         
-        // 5. Update Database
-        if (_currentUser != null) {
-          FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).update({
+        // --- ⚡ SMART UPDATE LOGIC START ---
+        bool shouldUpdate = false;
+        if (_lastSavedPos == null) {
+          shouldUpdate = true;
+        } else {
+          // Calculate distance in meters
+          double distanceInMeters = Geolocator.distanceBetween(
+            _lastSavedPos!.latitude, _lastSavedPos!.longitude, 
+            newPos.latitude, newPos.longitude
+          );
+          if (distanceInMeters > 50) { // Only update if moved > 50m
+            shouldUpdate = true;
+          }
+        }
+
+        if (shouldUpdate && _currentUser != null) {
+          await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).update({
             'lastLat': position.latitude,
             'lastLng': position.longitude
           });
+          _lastSavedPos = newPos; // Update local cache
+          print("✅ Location Updated to Database (Moved > 50m)");
+        } else {
+          print("⚠️ Skipped Database Update (Moved < 50m)");
         }
+        // --- ⚡ SMART UPDATE LOGIC END ---
       }
     } catch (e) {
       if(mounted) {
@@ -144,7 +155,6 @@ class _TrriveNeonMapState extends State<TrriveNeonMap> with TickerProviderStateM
       }
     }
   }
-
   Color _getCategoryColor(String cat) {
     switch (cat) {
       case 'Sports': return Colors.orangeAccent;
