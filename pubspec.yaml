@@ -48,10 +48,11 @@ flutter:
   uses-material-design: true
 
 # ✅ Configuration for the tool
+# ✅ Configuration for the tool
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/icon.png"
+  image_path: "assets/icon.png"             # <--- Points to icon.png
   min_sdk_android: 21
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/icon.png"
+  adaptive_icon_foreground: "assets/icon.png" # <--- ALSO Points to icon.png

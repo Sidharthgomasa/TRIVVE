@@ -348,7 +348,9 @@ class CarromBoardPainter extends CustomPainter {
     _drawBaselines(canvas, w, h);
 
     // 3. Pieces
-    for (var piece in pieces) _drawPiece(canvas, piece, size);
+    for (var piece in pieces) {
+      _drawPiece(canvas, piece, size);
+    }
 
     // 4. Striker (Always draw on top)
     _drawPiece(canvas, striker, size);

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:trivve/games/core_engine.dart';
@@ -50,8 +49,9 @@ class _LudoGameUIState extends State<LudoGameUI> with TickerProviderStateMixin {
       List myTokens = [];
       
       // Determine which token list is mine based on Player ID
-      if (myId == widget.data['host']) myTokens = List.from(widget.data['state']['p1Tokens']);
-      else if (myId == widget.data['player2']) myTokens = List.from(widget.data['state']['p2Tokens']);
+      if (myId == widget.data['host']) {
+        myTokens = List.from(widget.data['state']['p1Tokens']);
+      } else if (myId == widget.data['player2']) myTokens = List.from(widget.data['state']['p2Tokens']);
       else if (myId == widget.data['player3']) myTokens = List.from(widget.data['state']['p3Tokens'] ?? []);
       else if (myId == widget.data['player4']) myTokens = List.from(widget.data['state']['p4Tokens'] ?? []);
       else if (myId == 'P1') myTokens = List.from(widget.data['state']['p1Tokens']); // Local Fallback

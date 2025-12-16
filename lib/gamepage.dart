@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,8 +22,11 @@ import 'package:trivve/games/cricket_game.dart';
 import 'package:trivve/games/core_engine.dart'; 
 import 'package:trivve/games/ai_brain.dart';
 
+// --- SOCIAL IMPORTS ---
+import 'package:trivve/trrive_yearbook.dart'; // ✅ Using Yearbook as the main Profile/Settings page
+
 // =============================================================================
-// 1. MAIN LOBBY SCREEN (Clean Version - No Squads)
+// 1. MAIN LOBBY SCREEN
 // =============================================================================
 
 class GameLobby extends StatefulWidget {
@@ -31,10 +35,13 @@ class GameLobby extends StatefulWidget {
   State<GameLobby> createState() => _GameLobbyState();
 }
 
-class _GameLobbyState extends State<GameLobby> {
+class _GameLobbyState extends State<GameLobby> with TickerProviderStateMixin {
   final _codeController = TextEditingController();
+  late AnimationController _backgroundCtrl;
+  late AnimationController _entranceCtrl;
+  final List<Star> _stars = [];
+  final Random _rng = Random();
 
-  // --- A. GAME DATA LIST ---
   final List<Map<String, dynamic>> _games = [
     {'title': 'Ludo', 'type': 'ludo', 'icon': Icons.grid_view, 'color': Colors.redAccent},
     {'title': 'Carrom', 'type': 'carrom', 'icon': Icons.circle_outlined, 'color': Colors.amber},
@@ -49,7 +56,6 @@ class _GameLobbyState extends State<GameLobby> {
     {'title': 'Guess Number', 'type': 'guessnum', 'icon': Icons.question_mark, 'color': Colors.purple},
     {'title': 'Hangman', 'type': 'hangman', 'icon': Icons.abc, 'color': Colors.indigo},
     {'title': 'Math Sprint', 'type': 'math', 'icon': Icons.calculate, 'color': Colors.green},
-    {'title': 'Reaction', 'type': 'reaction', 'icon': Icons.flash_on, 'color': Colors.cyan},
     {'title': 'Simon Says', 'type': 'simon', 'icon': Icons.surround_sound, 'color': Colors.lightBlueAccent},
     {'title': '2048', 'type': '2048', 'icon': Icons.filter_4, 'color': Colors.amberAccent},
     {'title': 'Minesweeper', 'type': 'mines', 'icon': Icons.flag, 'color': Colors.red},
@@ -62,7 +68,23 @@ class _GameLobbyState extends State<GameLobby> {
     {'title': 'Lights Out', 'type': 'lights', 'icon': Icons.lightbulb_outline, 'color': Colors.yellowAccent},
   ];
 
-  // --- B. HELPER METHODS ---
+  @override
+  void initState() {
+    super.initState();
+    _backgroundCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    for(int i=0; i<50; i++) {
+      _stars.add(Star(x: _rng.nextDouble(), y: _rng.nextDouble(), size: _rng.nextDouble() * 2 + 1, speed: _rng.nextDouble() * 0.05 + 0.01));
+    }
+    _entranceCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _entranceCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _backgroundCtrl.dispose();
+    _entranceCtrl.dispose();
+    super.dispose();
+  }
 
   void _onGameTap(String type, String title) {
     showDialog(
@@ -110,7 +132,7 @@ class _GameLobbyState extends State<GameLobby> {
       'created': FieldValue.serverTimestamp(), 
       'winner': null,
       'rematchHost': false, 'rematchJoiner': false, 
-      'state': _getInitialState(type, user.uid)
+      'state': getInitialGameState(type, user.uid)
     });
 
     if (mounted) Navigator.push(context, MaterialPageRoute(builder: (c) => OnlineGameScreen(gameId: code, gameType: type)));
@@ -131,38 +153,160 @@ class _GameLobbyState extends State<GameLobby> {
     }
   }
 
-  // --- C. UI BUILD METHOD ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text("ARCADE LOBBY 🎮"), backgroundColor: Colors.black, foregroundColor: Colors.white),
-      body: Column(
-        children: [
-          // 1. GAME CODE INPUT
+      backgroundColor: Colors.black, 
+      appBar: AppBar(
+        title: const Text("ARCADE LOBBY 🎮"), 
+        backgroundColor: Colors.transparent, 
+        elevation: 0,
+        foregroundColor: Colors.white,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.black.withOpacity(0.5)),
+          ),
+        ),
+        actions: [
+          // 👤 ID / SETTINGS BUTTON (Consolidated)
+          // Opens The Yearbook which now includes Settings at the bottom
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              Expanded(child: TextField(controller: _codeController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "ENTER GAME CODE", filled: true, fillColor: Colors.white10))),
-              const SizedBox(width: 10),
-              ElevatedButton(onPressed: _join, style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent), child: const Text("JOIN GAME", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)))
-            ]),
+            padding: const EdgeInsets.only(right: 12.0),
+            child: IconButton(
+              icon: Stack(
+                children: [
+                  const Icon(Icons.account_circle, size: 30, color: Colors.cyanAccent),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                      child: const Icon(Icons.settings, size: 12, color: Colors.white),
+                    ),
+                  )
+                ],
+              ),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const TheYearbookScreen()))
+                    .then((_) => setState(() {})); 
+              },
+            ),
+          ),
+        ],
+      ),
+      extendBodyBehindAppBar: true, 
+      body: Stack(
+        children: [
+          // ANIMATED BACKGROUND
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _backgroundCtrl,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: StarfieldPainter(_stars, _backgroundCtrl.value),
+                );
+              },
+            ),
           ),
 
-          // 2. GAME GRID
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 140, childAspectRatio: 0.9, crossAxisSpacing: 10, mainAxisSpacing: 10),
-              itemCount: _games.length,
-              itemBuilder: (c, i) => GestureDetector(
-                onTap: () => _onGameTap(_games[i]['type'], _games[i]['title']),
-                child: Container(
-                  decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(15), border: Border.all(color: _games[i]['color'])),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(_games[i]['icon'], size: 35, color: _games[i]['color']), const SizedBox(height: 10), Text(_games[i]['title'], textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))]),
+          // MAIN CONTENT
+          Column(
+            children: [
+              const SizedBox(height: 100),
+
+              // IDENTITY HEADER
+              FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).get(),
+                builder: (context, snapshot) {
+                  String name = FirebaseAuth.instance.currentUser?.displayName ?? "Player";
+                  String avatar = "🤖";
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    var data = snapshot.data!.data() as Map<String, dynamic>;
+                    avatar = data['avatar'] ?? "🤖";
+                  }
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white12)
+                    ),
+                    child: Row(
+                      children: [
+                        Text(avatar, style: const TextStyle(fontSize: 30)),
+                        const SizedBox(width: 15),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("OPERATOR", style: TextStyle(color: Colors.cyanAccent.withOpacity(0.7), fontSize: 10, letterSpacing: 2)),
+                            Text(name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              // GAME CODE INPUT
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _codeController, 
+                      style: const TextStyle(color: Colors.white), 
+                      decoration: InputDecoration(
+                        hintText: "ENTER GAME CODE",
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                        filled: true, 
+                        fillColor: Colors.white.withOpacity(0.1),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)
+                      )
+                    )
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: _join, 
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent, padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20)), 
+                    child: const Text("JOIN", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
+                  )
+                ]),
+              ),
+
+              // GRID OF GAMES
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: _entranceCtrl,
+                  builder: (context, child) {
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 140, childAspectRatio: 0.9, crossAxisSpacing: 10, mainAxisSpacing: 10),
+                      itemCount: _games.length,
+                      itemBuilder: (c, i) {
+                        double start = (i * 0.05).clamp(0.0, 1.0);
+                        double end = (start + 0.4).clamp(0.0, 1.0);
+                        var anim = CurvedAnimation(parent: _entranceCtrl, curve: Interval(start, end, curve: Curves.easeOut));
+                        
+                        return SlideTransition(
+                          position: Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(anim),
+                          child: FadeTransition(
+                            opacity: anim,
+                            child: GestureDetector(
+                              onTap: () => _onGameTap(_games[i]['type'], _games[i]['title']),
+                              child: GlassGameCard(game: _games[i]),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -171,7 +315,77 @@ class _GameLobbyState extends State<GameLobby> {
 }
 
 // =============================================================================
-// 2. GAME SCAFFOLD (Frame + Rematch Logic)
+// 2. VISUAL COMPONENTS
+// =============================================================================
+
+class GlassGameCard extends StatelessWidget {
+  final Map<String, dynamic> game;
+  const GlassGameCard({super.key, required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: game['color'].withOpacity(0.3), width: 1.5),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)]
+            )
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: game['color'].withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: game['color'].withOpacity(0.2), blurRadius: 10)]
+                ),
+                child: Icon(game['icon'], size: 30, color: game['color']),
+              ),
+              const SizedBox(height: 10),
+              Text(game['title'], textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5))
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class Star {
+  double x, y, size, speed;
+  Star({required this.x, required this.y, required this.size, required this.speed});
+}
+
+class StarfieldPainter extends CustomPainter {
+  final List<Star> stars;
+  final double animationValue;
+  StarfieldPainter(this.stars, this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint p = Paint()..color = Colors.white;
+    for (var s in stars) {
+      double y = (s.y + (animationValue * s.speed)) % 1.0;
+      double opacity = (sin(animationValue * 2 * pi + s.x * 10) + 1) / 2;
+      p.color = Colors.white.withOpacity(0.3 + (opacity * 0.5));
+      canvas.drawCircle(Offset(s.x * size.width, y * size.height), s.size, p);
+    }
+  }
+  @override bool shouldRepaint(covariant StarfieldPainter old) => true;
+}
+
+// =============================================================================
+// 3. GAME SCAFFOLD & SCREENS
 // =============================================================================
 
 class GameScaffold extends StatefulWidget {
@@ -221,10 +435,6 @@ class _GameScaffoldState extends State<GameScaffold> {
   }
 }
 
-// =============================================================================
-// 3. SCREENS (Local & Online)
-// =============================================================================
-
 class LocalGameScreen extends StatefulWidget {
   final String gameType; final String title;
   const LocalGameScreen({super.key, required this.gameType, required this.title});
@@ -242,7 +452,11 @@ class _LocalGameScreenState extends State<LocalGameScreen> {
       if (!mounted) return; 
       setState(() { 
         newData.forEach((k, v) { 
-          if (k == 'winner') { _gameState['winner'] = v; if (v == 'P1') _p1Wins++; else _p2Wins++; } 
+          if (k == 'winner') { _gameState['winner'] = v; if (v == 'P1') {
+            _p1Wins++;
+          } else {
+            _p2Wins++;
+          } } 
           else if (k.startsWith('state.')) _gameState['state'][k.replaceAll('state.', '')] = v; 
           else _gameState[k] = v; 
         }); 
@@ -258,7 +472,9 @@ class _LocalGameScreenState extends State<LocalGameScreen> {
                 String? winner = AIBrain.getWinner(widget.gameType, _gameState['state']);
                 if (winner != null) {
                   _gameState['winner'] = winner;
-                  if (winner == 'P1') _p1Wins++; else if (winner == 'AI') _p2Wins++;
+                  if (winner == 'P1') {
+                    _p1Wins++;
+                  } else if (winner == 'AI') _p2Wins++;
                 }
               }); 
             } 
@@ -268,7 +484,20 @@ class _LocalGameScreenState extends State<LocalGameScreen> {
     }, () => _resetGame()); 
   }
 
-  void _resetGame() { bool aiStarts = widget.gameType == 'guessnum'; setState(() { _gameState = { 'host': aiStarts?'AI':'P1', 'player2': aiStarts?'P1':'AI', 'winner': null, 'state': _getInitialState(widget.gameType, aiStarts?'AI':'P1') }; _aiThinking = false; if (aiStarts) Future.delayed(Duration.zero, () => _controller.updateGame({})); }); }
+  void _resetGame() { 
+    bool aiStarts = widget.gameType == 'guessnum'; 
+    setState(() { 
+      _gameState = { 
+        'host': aiStarts?'AI':'P1', 
+        'player2': aiStarts?'P1':'AI', 
+        'winner': null, 
+        'state': getInitialGameState(widget.gameType, aiStarts?'AI':'P1') 
+      }; 
+      _aiThinking = false; 
+      if (aiStarts) Future.delayed(Duration.zero, () => _controller.updateGame({})); 
+    }); 
+  }
+
   bool _isAiTurn(String type, Map data) { 
     List<String> turnGames = ['tictactoe', 'connect4', 'rps', 'guessnum', 'cricket', 'gomoku', 'ludo', 'simon', 'battleship', 'dots', 'memory', 'hangman', 'trivia', 'math', 'carrom']; 
     return turnGames.contains(type) && data['state']['turn'] == 'AI'; 
@@ -295,17 +524,14 @@ class OnlineGameScreen extends StatelessWidget {
 
         GameController controller = OnlineGameController(gameId, myId, data['host'] == myId);
         
-        // Auto Rematch Logic
         if (data['rematchHost'] == true && data['rematchJoiner'] == true && data['host'] == myId) {
              FirebaseFirestore.instance.collection('games').doc(gameId).update({ 
                'winner': null, 'rematchHost': false, 'rematchJoiner': false, 
-               'state': _getInitialState(gameType, data['host']) 
+               'state': getInitialGameState(gameType, data['host']) 
              });
         }
 
         bool isOver = data['winner'] != null;
-        
-        // Determine Names
         String p1Name = data['hostName'] ?? 'P1';
         String p2Name = data['player2Name'] ?? 'P2';
         
@@ -324,7 +550,7 @@ class OnlineGameScreen extends StatelessWidget {
 }
 
 // =============================================================================
-// 4. BOARD SWITCHER & INITIAL STATE
+// 4. BOARD SWITCHER
 // =============================================================================
 
 Widget _buildBoard(String type, Map<String, dynamic> data, GameController ctrl) {
@@ -354,45 +580,4 @@ Widget _buildBoard(String type, Map<String, dynamic> data, GameController ctrl) 
     case 'typer': return TyperGameUI(data: data, controller: ctrl); 
     default: return const Center(child: Text("Loading..."));
   }
-}
-
-Map<String, dynamic> _getInitialState(String type, String uid) {
-  int aiTarget = 0;
-  if (uid == 'P1') { 
-    if (type == 'snake') aiTarget = 150; 
-    if (type == 'whack') aiTarget = 15;
-    if (type == 'tapattack') aiTarget = 100;
-    if (type == '2048') aiTarget = 2048; 
-    if (type == 'mines') aiTarget = 5; 
-    if (type == 'typer') aiTarget = 100; 
-    if (type == 'math') aiTarget = 10;
-    if (type == 'trivia') aiTarget = 50;
-    if (type == 'wordle') aiTarget = 4; 
-  }
-
-  if (type == 'cricket') return {'p1Score': -1, 'p2Score': aiTarget > 0 ? aiTarget : -1, 'turn': uid};
-  if (type == 'tictactoe') return {'board': List.filled(9, ''), 'turn': uid};
-  if (type == 'connect4') return {'board': List.filled(42, ''), 'turn': uid};
-  if (type == 'snake') return {'p1Score': -1, 'p2Score': aiTarget > 0 ? aiTarget : -1};
-  if (type == 'rps') return {'p1Move': '', 'p2Move': ''};
-  if (type == 'gomoku') return {'board': List.filled(100, ''), 'turn': uid};
-  if (type == 'guessnum') return {'target': -1, 'guesses': [], 'host': uid};
-  if (type == 'simon') return {'sequence': [], 'userStep': 0, 'active': true, 'turn': 'AI'}; 
-  if (type == '2048') return {'grid': List.filled(16, 0)..first = 2, 'p2Score': aiTarget};
-  if (type == 'mines') return {'grid': List.generate(25, (_) => Random().nextBool()), 'revealed': List.filled(25, false), 'p2Score': aiTarget};
-  if (type == 'wordle') return {'word': 'CODE', 'guesses': [], 'turn': uid, 'p2Score': aiTarget};
-  if (type == 'whack') return {'mole': -1, 'p1Score': 0, 'p2Score': aiTarget};
-  if (type == 'lights') return {'grid': List.generate(25, (_) => Random().nextBool())};
-  if (type == 'ludo') return {'p1Tokens': [0,0,0,0], 'p2Tokens': [0,0,0,0], 'dice': 0, 'turn': uid, 'canRoll': true};
-  if (type == 'dots') return {'lines': List.filled(40, 0), 'boxes': List.filled(20, 0), 'turn': uid};
-  if (type == 'battleship') return {'p1Grid': List.filled(25, 0), 'p2Grid': List.filled(25, 0), 'turn': uid};
-  if (type == 'hangman') return {'word': 'FLUTTER', 'guesses': [], 'host': uid};
-  if (type == 'memory') return {'grid': [1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8]..shuffle(), 'revealed': List.filled(16, false), 'turn': uid};
-  if (type == 'tapattack') return {'board': List.filled(25, ''), 'scores': {uid: 0}, 'p2Score': aiTarget};
-  if (type == 'trivia') return {'q': 0, 'p1Score': 0, 'p2Score': aiTarget, 'turn': uid};
-  if (type == 'math') return {'p1Score': 0, 'p2Score': aiTarget, 'turn': uid};
-  if (type == 'carrom') return {'turn': uid, 'canRoll': true}; 
-  if (type == 'typer') return {'p1Score': 0, 'p2Score': aiTarget};
-  
-  return {};
 }

@@ -132,8 +132,9 @@ class AIBrain {
     for (int b = 0; b < 6; b++) {
       if (w >= 2) break;
       int roll = _rnd.nextInt(100);
-      if (roll < (agg > 70 ? 25 : 15)) w++;
-      else if (roll > (agg > 70 ? 80 : 95)) r += 6;
+      if (roll < (agg > 70 ? 25 : 15)) {
+        w++;
+      } else if (roll > (agg > 70 ? 80 : 95)) r += 6;
       else if (roll > 60) r += 4;
       else if (roll > 30) r += 2;
       else r += 1;
@@ -146,11 +147,17 @@ class AIBrain {
   static Map<String, dynamic> _minimaxTicTacToe(Map<String, dynamic> state) {
     List board = List.from(state['board']);
     // Check immediate win
-    for(int i=0; i<9; i++) if(board[i]=='') { board[i]='O'; if(_checkWinTicTacToe(board)=='AI') { state['board']=board; state['turn']='P1'; return state; } board[i]=''; }
+    for(int i=0; i<9; i++) {
+      if(board[i]=='') { board[i]='O'; if(_checkWinTicTacToe(board)=='AI') { state['board']=board; state['turn']='P1'; return state; } board[i]=''; }
+    }
     // Check block
-    for(int i=0; i<9; i++) if(board[i]=='') { board[i]='X'; if(_checkWinTicTacToe(board)=='P1') { board[i]='O'; state['board']=board; state['turn']='P1'; return state; } board[i]=''; }
+    for(int i=0; i<9; i++) {
+      if(board[i]=='') { board[i]='X'; if(_checkWinTicTacToe(board)=='P1') { board[i]='O'; state['board']=board; state['turn']='P1'; return state; } board[i]=''; }
+    }
     // Random
-    List<int> e=[]; for(int i=0;i<9;i++) if(board[i]=='') e.add(i);
+    List<int> e=[]; for(int i=0;i<9;i++) {
+      if(board[i]=='') e.add(i);
+    }
     if(e.isNotEmpty) board[e[_rnd.nextInt(e.length)]] = 'O';
     state['board'] = board; state['turn'] = 'P1'; return state;
   }

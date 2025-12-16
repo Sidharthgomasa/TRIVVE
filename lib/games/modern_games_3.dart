@@ -32,23 +32,27 @@ class _Game2048UIState extends State<Game2048UI> {
     bool moved = false;
 
     // 1. MERGE LOGIC
-    if (dir == 'left') moved = _moveLeft(grid);
-    else if (dir == 'right') moved = _moveRight(grid);
+    if (dir == 'left') {
+      moved = _moveLeft(grid);
+    } else if (dir == 'right') moved = _moveRight(grid);
     else if (dir == 'up') moved = _moveUp(grid);
     else if (dir == 'down') moved = _moveDown(grid);
 
     if (moved) {
       // 2. SPAWN NEW TILE
       List<int> empty = [];
-      for (int i = 0; i < 16; i++) if (grid[i] == 0) empty.add(i);
+      for (int i = 0; i < 16; i++) {
+        if (grid[i] == 0) empty.add(i);
+      }
       if (empty.isNotEmpty) {
         grid[empty[Random().nextInt(empty.length)]] = Random().nextBool() ? 2 : 4;
       }
 
       // 3. CHECK WIN/LOSS
       String? winner;
-      if (grid.contains(2048)) winner = widget.controller.myId; // Win Condition
-      else if (!_canMove(grid)) winner = 'AI'; // Loss Condition (Grid Full)
+      if (grid.contains(2048)) {
+        winner = widget.controller.myId; // Win Condition
+      } else if (!_canMove(grid)) winner = 'AI'; // Loss Condition (Grid Full)
 
       widget.controller.updateGame({'grid': grid}, mergeWinner: winner);
     }
@@ -113,7 +117,9 @@ class _Game2048UIState extends State<Game2048UI> {
       }
     }
     nonZero = nonZero.where((e) => e != 0).toList();
-    while (nonZero.length < 4) nonZero.add(0);
+    while (nonZero.length < 4) {
+      nonZero.add(0);
+    }
     return nonZero;
   }
 
@@ -202,7 +208,9 @@ class _MinesweeperGameUIState extends State<MinesweeperGameUI> {
       // Check Win (All safe revealed)
       int totalSafe = grid.where((b) => !b).length;
       int totalRevealed = 0;
-      for(int i=0; i<25; i++) if(!grid[i] && revealed[i]) totalRevealed++;
+      for(int i=0; i<25; i++) {
+        if(!grid[i] && revealed[i]) totalRevealed++;
+      }
       
       String? winner;
       if (totalRevealed == totalSafe) winner = widget.controller.myId;
@@ -289,8 +297,9 @@ class _WordleGameUIState extends State<WordleGameUI> {
     _textCtrl.clear();
 
     String? winner;
-    if (guess == target) winner = widget.controller.myId;
-    else if (guesses.length >= 6) winner = 'AI'; // Lose condition
+    if (guess == target) {
+      winner = widget.controller.myId;
+    } else if (guesses.length >= 6) winner = 'AI'; // Lose condition
 
     widget.controller.updateGame({'guesses': guesses}, mergeWinner: winner);
   }
@@ -353,8 +362,9 @@ class _WordleGameUIState extends State<WordleGameUI> {
       children: List.generate(4, (i) {
         String char = guess[i];
         Color color = Colors.grey;
-        if (target[i] == char) color = Colors.green;
-        else if (target.contains(char)) color = Colors.amber;
+        if (target[i] == char) {
+          color = Colors.green;
+        } else if (target.contains(char)) color = Colors.amber;
         
         return Container(
           margin: const EdgeInsets.all(5),

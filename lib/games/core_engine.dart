@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 abstract class GameController {
   String get myId;
   void updateGame(Map<String, dynamic> data, {String? mergeWinner});
-  void requestRematch(); // ✅ ADDED THIS LINE
+  void requestRematch(); 
 }
 
 class LocalGameController extends GameController {
@@ -20,15 +20,18 @@ class LocalGameController extends GameController {
 
   @override
   void updateGame(Map<String, dynamic> data, {String? mergeWinner}) {
-    Map<String, dynamic> update = Map.from(data);
+    // ✅ CRITICAL FIX: Prefix keys with 'state.' so the UI sees them!
+    Map<String, dynamic> update = {};
+    data.forEach((key, value) {
+      update['state.$key'] = value;
+    });
+    
     if (mergeWinner != null) update['winner'] = mergeWinner;
     onUpdate(update);
   }
 
   @override
   void requestRematch() {
-    // Local games handle rematch via the _resetGame callback in the UI,
-    // so this stays empty or can manually trigger reset if needed.
     onReset();
   }
 }
@@ -61,7 +64,7 @@ class OnlineGameController extends GameController {
 }
 
 // =============================================================================
-// 2. GAME STATE GENERATOR (Shared Logic)
+// 2. GAME STATE GENERATOR (Centralized Logic)
 // =============================================================================
 
 Map<String, dynamic> getInitialGameState(String type, String hostId) {

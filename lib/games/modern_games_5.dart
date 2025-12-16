@@ -153,8 +153,9 @@ class HangmanGameUI extends StatelessWidget {
     bool won = word.split('').every((c) => guesses.contains(c));
 
     String? winner;
-    if (won) winner = controller.myId;
-    else if (wrongCount >= 6) winner = 'AI'; 
+    if (won) {
+      winner = controller.myId;
+    } else if (wrongCount >= 6) winner = 'AI'; 
 
     controller.updateGame({
       'guesses': guesses,

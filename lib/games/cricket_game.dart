@@ -27,7 +27,7 @@ class _CricketGameUIState extends State<CricketGameUI> with TickerProviderStateM
   bool _ballDelivered = false;
   double _ballProgress = 0.0; 
   
-  List<String> _overHistory = [];
+  final List<String> _overHistory = [];
 
   @override
   void initState() {
@@ -334,7 +334,9 @@ class CricketFieldPainter extends CustomPainter {
     canvas.drawLine(Offset(cx - 60, topY), Offset(cx - 60, botY), linePaint);
     canvas.drawLine(Offset(cx + 60, topY), Offset(cx + 60, botY), linePaint);
     Paint grass = Paint()..color = Colors.black.withOpacity(0.05);
-    for (double i = 0; i < h; i += 20) canvas.drawLine(Offset(0, i), Offset(w, i), grass);
+    for (double i = 0; i < h; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(w, i), grass);
+    }
   }
   @override bool shouldRepaint(old) => false;
 }
