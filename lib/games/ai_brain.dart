@@ -114,7 +114,9 @@ class AIBrain {
     }
     // Random targeting if no previous hits
     int target = _rnd.nextInt(25);
-    while (grid[target] >= 2) target = _rnd.nextInt(25);
+    while (grid[target] >= 2) {
+      target = _rnd.nextInt(25);
+    }
     grid[target] = (grid[target] == 1) ? 2 : 3;
     s['p1Grid'] = grid;
     s['turn'] = (grid[target] == 2) ? 'AI' : 'P1';
@@ -160,7 +162,9 @@ class AIBrain {
       }
     }
     // 3. Random move
-    List<int> e=[]; for(int i=0;i<9;i++) if(board[i]=='') e.add(i);
+    List<int> e=[]; for(int i=0;i<9;i++) {
+      if(board[i]=='') e.add(i);
+    }
     if(e.isNotEmpty) board[e[_rnd.nextInt(e.length)]] = 'O';
     state['board'] = board; state['turn'] = 'P1'; return state;
   }
@@ -168,7 +172,9 @@ class AIBrain {
   static Map<String, dynamic> _smartDots(Map<String, dynamic> s) {
     List lines = List.from(s['lines'] ?? List.filled(24, 0));
     List<int> avail = [];
-    for(int i=0; i<lines.length; i++) if(lines[i] == 0) avail.add(i);
+    for(int i=0; i<lines.length; i++) {
+      if(lines[i] == 0) avail.add(i);
+    }
     if(avail.isNotEmpty) lines[avail[_rnd.nextInt(avail.length)]] = 2;
     s['lines'] = lines; s['turn'] = 'P1'; return s;
   }
@@ -208,7 +214,9 @@ class AIBrain {
 
   static Map<String, dynamic> _heuristicGomoku(Map<String, dynamic> s) {
     List b = List.from(s['board']);
-    List<int> e = []; for(int i=0; i<100; i++) if(b[i]=='') e.add(i);
+    List<int> e = []; for(int i=0; i<100; i++) {
+      if(b[i]=='') e.add(i);
+    }
     if(e.isNotEmpty) b[e[_rnd.nextInt(e.length)]] = 'W';
     s['board'] = b; s['turn'] = 'P1'; return s;
   }
@@ -231,7 +239,9 @@ class AIBrain {
 
   static String? _checkWinTicTacToe(List b) {
     List<List<int>> wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    for (var w in wins) if (b[w[0]]!='' && b[w[0]]==b[w[1]] && b[w[1]]==b[w[2]]) return b[w[0]]=='X'?'P1':'AI';
+    for (var w in wins) {
+      if (b[w[0]]!='' && b[w[0]]==b[w[1]] && b[w[1]]==b[w[2]]) return b[w[0]]=='X'?'P1':'AI';
+    }
     return b.contains('') ? null : 'draw';
   }
 

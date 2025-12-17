@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:trivve/games/core_engine.dart';
+import 'package:trivve/services/ad_service.dart';
 
 class ArcadeMasterWrapper extends StatelessWidget {
   final Widget gameUI;
@@ -36,12 +39,15 @@ class ArcadeMasterWrapper extends StatelessWidget {
             ],
           ),
 
-          // 2. HELP BUTTON (Top Right - Overlaying HUD)
+          // 2. HELP BUTTON (Top Right)
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             right: 15,
             child: GestureDetector(
-              onTap: () => _showHelp(context),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _showHelp(context);
+              },
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -62,7 +68,6 @@ class ArcadeMasterWrapper extends StatelessWidget {
   }
 
   Widget _buildNeonHUD(BuildContext context, Map state, bool isMyTurn) {
-    // Determine scores based on game state keys
     final String p1Score = "${state['p1Score'] ?? state['score'] ?? 0}";
     final String p2Score = "${state['p2Score'] ?? state['enemyScore'] ?? 0}";
 
@@ -151,6 +156,14 @@ class ArcadeMasterWrapper extends StatelessWidget {
 
   Widget _buildVerdictOverlay(BuildContext context, String winner) {
     bool iWon = winner == controller.myId;
+
+    // Trigger Win/Loss Vibration
+    if (iWon) {
+      HapticFeedback.heavyImpact();
+    } else {
+      HapticFeedback.vibrate();
+    }
+
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
       child: Container(
@@ -159,12 +172,13 @@ class ArcadeMasterWrapper extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Glitch Effect Icon
-              Icon(iWon ? Icons.verified_user : Icons.gpp_bad, color: iWon ? Colors.greenAccent : Colors.redAccent, size: 100),
-              const SizedBox(height: 10),
+              Icon(iWon ? Icons.stars : Icons.gpp_bad, 
+                   color: iWon ? Colors.amber : Colors.redAccent, size: 80),
+              const SizedBox(height: 20),
               Text(
                 iWon ? "TRANSACTION SECURED" : "ENCRYPTION FAILED",
-                style: TextStyle(color: iWon ? Colors.greenAccent : Colors.redAccent, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
+                style: TextStyle(color: iWon ? Colors.greenAccent : Colors.redAccent, 
+                fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 5),
               Text(
@@ -172,14 +186,48 @@ class ArcadeMasterWrapper extends StatelessWidget {
                 style: const TextStyle(color: Colors.white38, fontSize: 12),
               ),
               const SizedBox(height: 40),
-              // Action Buttons
+              
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 50),
                 child: Column(
                   children: [
-                    _overlayButton("REBOOT MATCH", () => controller.requestRematch(), Colors.white, Colors.black),
+                    if (iWon) ...[
+                      // HIGH GAIN REWARD BUTTON
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          AdService().showRewarded((rewardAmount) {
+                            // Double the reward in Firestore
+                            FirebaseFirestore.instance.collection('users').doc(controller.myId).update({
+                              'aura': FieldValue.increment(20), 
+                            });
+                            HapticFeedback.heavyImpact();
+                          });
+                        },
+                        icon: const Icon(Icons.bolt, color: Colors.black),
+                        label: const Text("DOUBLE MY AURA (+20)"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber, 
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                    ],
+
+                    _overlayButton("REBOOT MATCH", () {
+                      HapticFeedback.mediumImpact();
+                      controller.requestRematch();
+                    }, Colors.white, Colors.black),
+                    
                     const SizedBox(height: 15),
-                    _overlayButton("TERMINATE SESSION", () => Navigator.pop(context), Colors.transparent, Colors.white, border: true),
+                    
+                    _overlayButton("TERMINATE SESSION", () {
+                      // Trigger Interstitial Ad on Exit
+                      AdService().showInterstitial();
+                      Navigator.pop(context);
+                    }, Colors.transparent, Colors.white, border: true),
                   ],
                 ),
               ),

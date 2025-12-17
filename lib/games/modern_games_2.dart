@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:trivve/games/core_engine.dart';
 import 'package:trivve/games/arcade_wrapper.dart';
+import 'package:flutter/services.dart';
 
 // =============================================================================
 // 1. CYBER SNAKE (Neon Arcade Style)
@@ -97,11 +98,13 @@ class _CyberSnakeGameUIState extends State<CyberSnakeGameUI> with TickerProvider
 
   void _handleSwipe(DragUpdateDetails details) {
     if (details.delta.dx.abs() > details.delta.dy.abs()) {
-      if (details.delta.dx > 0 && direction != 'left') direction = 'right';
-      else if (details.delta.dx < 0 && direction != 'right') direction = 'left';
+      if (details.delta.dx > 0 && direction != 'left') {
+        direction = 'right';
+      } else if (details.delta.dx < 0 && direction != 'right') direction = 'left';
     } else {
-      if (details.delta.dy > 0 && direction != 'up') direction = 'down';
-      else if (details.delta.dy < 0 && direction != 'down') direction = 'up';
+      if (details.delta.dy > 0 && direction != 'up') {
+        direction = 'down';
+      } else if (details.delta.dy < 0 && direction != 'down') direction = 'up';
     }
   }
 

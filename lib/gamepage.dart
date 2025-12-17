@@ -337,7 +337,9 @@ class _LocalGameScreenState extends State<LocalGameScreen> {
       if(!mounted) return;
       setState(() {
         newData.forEach((k,v) {
-          if (k == 'winner') { _gameState['winner'] = v; if(v=='P1') _p1W++; else if(v=='AI') _aiW++; }
+          if (k == 'winner') { _gameState['winner'] = v; if(v=='P1') {
+            _p1W++;
+          } else if(v=='AI') _aiW++; }
           else if (k.startsWith('state.')) _gameState['state'][k.replaceAll('state.', '')] = v;
         });
         if (_gameState['winner']==null && _gameState['state']['turn'] == 'AI') {

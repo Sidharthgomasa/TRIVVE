@@ -116,7 +116,8 @@ Map<String, dynamic> getInitialGameState(String type, String hostId) {
   if (type == 'tictactoe') return {'board': List.filled(9, ''), 'turn': hostId};
   if (type == 'connect4') return {'board': List.filled(42, ''), 'turn': hostId};
   if (type == 'snake') return {'p1Score': -1, 'p2Score': aiTarget > 0 ? aiTarget : -1};
-  if (type == 'rps') return {
+  if (type == 'rps') {
+    return {
   'p1Move': '', 
   'p2Move': '', 
   'p1Score': 0, 
@@ -124,6 +125,7 @@ Map<String, dynamic> getInitialGameState(String type, String hostId) {
   'round': 1,
   'turn': hostId
 };
+  }
   if (type == 'gomoku') return {'board': List.filled(100, ''), 'turn': hostId};
   if (type == 'guessnum') return {'target': -1, 'guesses': [], 'host': hostId, 'turn': hostId};
   if (type == 'simon') return {'sequence': [], 'userStep': 0, 'active': true, 'turn': 'AI'}; 

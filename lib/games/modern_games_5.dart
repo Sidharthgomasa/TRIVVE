@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:trivve/games/core_engine.dart';
 import 'package:trivve/games/arcade_wrapper.dart'; // Ensure this is imported
+import 'package:flutter/services.dart';
 
 // =============================================================================
 // 1. VAULT BREAKER (Guess Number)
@@ -124,8 +125,9 @@ class HangmanGameUI extends StatelessWidget {
     int wrongCount = guesses.where((g) => !word.contains(g)).length;
     bool won = word.split('').every((c) => guesses.contains(c));
     String? winner;
-    if (won) winner = controller.myId;
-    else if (wrongCount >= 6) winner = 'AI'; 
+    if (won) {
+      winner = controller.myId;
+    } else if (wrongCount >= 6) winner = 'AI'; 
     controller.updateGame({'guesses': guesses, 'turn': 'AI'}, mergeWinner: winner);
   }
 

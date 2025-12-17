@@ -197,8 +197,9 @@ class _WordleBoardState extends State<WordleBoard> {
                   children: List.generate(4, (charIdx) {
                     Color col = Colors.white10;
                     if (g.isNotEmpty) {
-                      if (g[charIdx] == target[charIdx]) col = Colors.green;
-                      else if (target.contains(g[charIdx])) col = Colors.orange;
+                      if (g[charIdx] == target[charIdx]) {
+                        col = Colors.green;
+                      } else if (target.contains(g[charIdx])) col = Colors.orange;
                       else col = Colors.white24;
                     }
                     return Container(

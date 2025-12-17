@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:trivve/games/core_engine.dart';
 import 'package:trivve/games/arcade_wrapper.dart';
+import 'package:flutter/services.dart';
 
 // =============================================================================
 // PRO CARROM (Realistic Physics & Official Board Layout)
@@ -272,7 +273,9 @@ class _TyperGameUIState extends State<TyperGameUI> {
             y: -0.1
           ));
         }
-        for (var w in words) w.y += 0.005 + (score * 0.0001);
+        for (var w in words) {
+          w.y += 0.005 + (score * 0.0001);
+        }
         if (words.any((w) => w.y > 0.9)) _gameOver();
         words.removeWhere((w) => w.y > 0.9);
       });

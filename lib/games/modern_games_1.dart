@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:trivve/games/core_engine.dart';
 import 'package:trivve/games/arcade_wrapper.dart'; // Ensure this is imported
+import 'package:flutter/services.dart';
 
 // =============================================================================
 // 1. NEON CONNECT 4 (With Info Integration)
@@ -193,11 +194,16 @@ class RPSGameUI extends StatelessWidget {
 
     if (m1 != m2) {
       bool p1Wins = (m1 == '🪨' && m2 == '✂️') || (m1 == '📄' && m2 == '🪨') || (m1 == '✂️' && m2 == '📄');
-      if (p1Wins) p1S++; else p2S++;
+      if (p1Wins) {
+        p1S++;
+      } else {
+        p2S++;
+      }
     }
 
-    if (p1S >= 10) finalWinner = 'P1';
-    else if (p2S >= 10) finalWinner = 'AI';
+    if (p1S >= 10) {
+      finalWinner = 'P1';
+    } else if (p2S >= 10) finalWinner = 'AI';
 
     controller.updateGame({
       'p1Move': '', 'p2Move': '',

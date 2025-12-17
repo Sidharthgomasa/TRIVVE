@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // For vibration
 import 'core_engine.dart';
+import 'package:trivve/services/ad_service.dart'; // Your AdService
 
 class ArcadeWrapper extends StatelessWidget {
   final String title;
@@ -20,6 +22,9 @@ class ArcadeWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pre-load an ad while they are on this screen
+    AdService().loadInterstitial();
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -36,10 +41,17 @@ class ArcadeWrapper extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // EXIT BUTTON
+                  // EXIT BUTTON (With Ad Logic)
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white54),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      HapticFeedback.mediumImpact(); // Feel the exit
+                      
+                      // Show Ad on Exit (High Gains Strategy)
+                      AdService().showInterstitial();
+                      
+                      Navigator.pop(context);
+                    },
                   ),
                   
                   // GAME TITLE
@@ -58,7 +70,10 @@ class ArcadeWrapper extends StatelessWidget {
 
                   // INFO BUTTON
                   GestureDetector(
-                    onTap: () => _showHowToPlay(context),
+                    onTap: () {
+                      HapticFeedback.lightImpact(); // Subtle click
+                      _showHowToPlay(context);
+                    },
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -85,10 +100,10 @@ class ArcadeWrapper extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Instructions",
-      barrierColor: Colors.black87, // Darken background
+      barrierColor: Colors.black87,
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // Add Cyber-style blur
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Center(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 30),
@@ -124,14 +139,17 @@ class ArcadeWrapper extends StatelessWidget {
                     height: 1.6, 
                     fontSize: 14,
                     decoration: TextDecoration.none,
-                    fontFamily: 'Courier', // Monospace font for "Cyber" feel
+                    fontFamily: 'Courier', 
                   ),
                 ),
                 const SizedBox(height: 25),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      HapticFeedback.heavyImpact(); // Confirm start
+                      Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.cyanAccent,
                       foregroundColor: Colors.black,

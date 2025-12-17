@@ -51,17 +51,17 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:589537709752:android:71cc2863134e0768e16e4d",
+        "mobilesdk_app_id": "1:589537709752:android:6ada2ac490e22bb4e16e4d",
         "android_client_info": {
-          "package_name": "com.gomasa.rally_app"
+          "package_name": "com.gomasa.trivve"
         }
       },
       "oauth_client": [
         {
-          "client_id": "589537709752-8v54d9fvmcp3ckrnvoks83gui1apb3lb.apps.googleusercontent.com",
+          "client_id": "589537709752-djkq0l0m7ft077s55f18h7208vdjnsst.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.gomasa.rally_app",
+            "package_name": "com.gomasa.trivve",
             "certificate_hash": "8f2833a006a39899a460c2fd6f0ec71683fc8a02"
           }
         },

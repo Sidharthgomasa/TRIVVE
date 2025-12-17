@@ -14,9 +14,11 @@ import 'package:trivve/gamepage.dart';
 import 'package:trivve/trrive_squad_module.dart';     
 import 'package:trivve/username_setup.dart';
 import 'package:trivve/trivve_college_spaces.dart';   
+import 'package:trivve/services/ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdService().initAds();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); 
   runApp(const TrivveApp());
 }
