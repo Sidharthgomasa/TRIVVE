@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:trivve/games/core_engine.dart';
+import 'package:trivve/games/arcade_wrapper.dart'; // Ensure this is imported
 
 // =============================================================================
 // 1. NEON 2048 (Physics & Merging Logic)
@@ -16,7 +17,6 @@ class Game2048UI extends StatefulWidget {
 }
 
 class _Game2048UIState extends State<Game2048UI> {
-  // Colors for tiles 2, 4, 8, 16...
   final Map<int, Color> _tileColors = {
     2: Colors.cyanAccent, 4: Colors.purpleAccent, 8: Colors.orangeAccent,
     16: Colors.pinkAccent, 32: Colors.greenAccent, 64: Colors.blueAccent,
@@ -26,32 +26,22 @@ class _Game2048UIState extends State<Game2048UI> {
 
   void _handleSwipe(String dir) {
     if (widget.data['winner'] != null) return;
-
     List<int> grid = List<int>.from(widget.data['state']['grid']);
     bool moved = false;
 
-    // 1. MERGE LOGIC
-    if (dir == 'left') {
-      moved = _moveLeft(grid);
-    } else if (dir == 'right') moved = _moveRight(grid);
+    if (dir == 'left') moved = _moveLeft(grid);
+    else if (dir == 'right') moved = _moveRight(grid);
     else if (dir == 'up') moved = _moveUp(grid);
     else if (dir == 'down') moved = _moveDown(grid);
 
     if (moved) {
-      // 2. SPAWN NEW TILE
       List<int> empty = [];
-      for (int i = 0; i < 16; i++) {
-        if (grid[i] == 0) empty.add(i);
-      }
-      if (empty.isNotEmpty) {
-        grid[empty[Random().nextInt(empty.length)]] = Random().nextBool() ? 2 : 4;
-      }
+      for (int i = 0; i < 16; i++) { if (grid[i] == 0) empty.add(i); }
+      if (empty.isNotEmpty) grid[empty[Random().nextInt(empty.length)]] = Random().nextBool() ? 2 : 4;
 
-      // 3. CHECK WIN/LOSS
       String? winner;
-      if (grid.contains(2048)) {
-        winner = widget.controller.myId; // Win Condition
-      } else if (!_canMove(grid)) winner = 'AI'; // Loss Condition (Grid Full)
+      if (grid.contains(2048)) winner = widget.controller.myId;
+      else if (!_canMove(grid)) winner = 'AI';
 
       widget.controller.updateGame({'grid': grid}, mergeWinner: winner);
     }
@@ -116,9 +106,7 @@ class _Game2048UIState extends State<Game2048UI> {
       }
     }
     nonZero = nonZero.where((e) => e != 0).toList();
-    while (nonZero.length < 4) {
-      nonZero.add(0);
-    }
+    while (nonZero.length < 4) nonZero.add(0);
     return nonZero;
   }
 
@@ -135,37 +123,43 @@ class _Game2048UIState extends State<Game2048UI> {
   @override
   Widget build(BuildContext context) {
     List<dynamic> grid = widget.data['state']['grid'];
-    return GestureDetector(
-      onVerticalDragEnd: (d) => _handleSwipe(d.primaryVelocity! < 0 ? 'up' : 'down'),
-      onHorizontalDragEnd: (d) => _handleSwipe(d.primaryVelocity! < 0 ? 'left' : 'right'),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          width: 350, height: 350,
-          decoration: BoxDecoration(
-            color: Colors.grey[900],
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white24)
-          ),
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 16,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4, crossAxisSpacing: 8, mainAxisSpacing: 8
+    return ArcadeWrapper(
+      title: "2048",
+      instructions: "• Swipe tiles to merge matching numbers.\n• Goal: Reach the 2048 tile to win.\n• Game ends if the grid fills and no moves remain.",
+      data: widget.data,
+      controller: widget.controller,
+      gameUI: GestureDetector(
+        onVerticalDragEnd: (d) => _handleSwipe(d.primaryVelocity! < 0 ? 'up' : 'down'),
+        onHorizontalDragEnd: (d) => _handleSwipe(d.primaryVelocity! < 0 ? 'left' : 'right'),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            width: 350, height: 350,
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white24)
             ),
-            itemBuilder: (ctx, i) {
-              int val = grid[i];
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: val == 0 ? Colors.white10 : (_tileColors[val] ?? Colors.black).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: val == 0 ? Colors.transparent : (_tileColors[val] ?? Colors.white)),
-                  boxShadow: val > 0 ? [BoxShadow(color: (_tileColors[val] ?? Colors.white).withOpacity(0.4), blurRadius: 10)] : []
-                ),
-                child: Center(child: Text(val > 0 ? "$val" : "", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: _tileColors[val] ?? Colors.white))),
-              );
-            },
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 16,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4, crossAxisSpacing: 8, mainAxisSpacing: 8
+              ),
+              itemBuilder: (ctx, i) {
+                int val = grid[i];
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: val == 0 ? Colors.white10 : (_tileColors[val] ?? Colors.black).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: val == 0 ? Colors.transparent : (_tileColors[val] ?? Colors.white)),
+                    boxShadow: val > 0 ? [BoxShadow(color: (_tileColors[val] ?? Colors.white).withOpacity(0.4), blurRadius: 10)] : []
+                  ),
+                  child: Center(child: Text(val > 0 ? "$val" : "", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: _tileColors[val] ?? Colors.white))),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -187,41 +181,25 @@ class MinesweeperGameUI extends StatefulWidget {
 }
 
 class _MinesweeperGameUIState extends State<MinesweeperGameUI> {
-  
   void _handleTap(int index) {
     if (widget.data['winner'] != null) return;
-
     List<bool> revealed = List<bool>.from(widget.data['state']['revealed']);
-    List<bool> grid = List<bool>.from(widget.data['state']['grid']); // True = Bomb
+    List<bool> grid = List<bool>.from(widget.data['state']['grid']);
 
     if (revealed[index]) return;
 
     if (grid[index]) {
-      // 💥 BOOM! Game Over.
-      revealed[index] = true; // Show the bomb
-      widget.controller.updateGame({'revealed': revealed}, mergeWinner: 'AI'); // AI wins (Player lost)
+      revealed[index] = true;
+      widget.controller.updateGame({'revealed': revealed}, mergeWinner: 'AI');
     } else {
-      // ✅ SAFE
-      _revealSafe(index, revealed, grid);
-      
-      // Check Win (All safe revealed)
+      revealed[index] = true;
       int totalSafe = grid.where((b) => !b).length;
       int totalRevealed = 0;
-      for(int i=0; i<25; i++) {
-        if(!grid[i] && revealed[i]) totalRevealed++;
-      }
-      
+      for(int i=0; i<25; i++) { if(!grid[i] && revealed[i]) totalRevealed++; }
       String? winner;
       if (totalRevealed == totalSafe) winner = widget.controller.myId;
-
       widget.controller.updateGame({'revealed': revealed}, mergeWinner: winner);
     }
-  }
-
-  void _revealSafe(int index, List<bool> revealed, List<bool> grid) {
-    // Simple Flood Fill could go here, but for V1 we just reveal one tile 
-    // to keep code safe and lag-free. 
-    revealed[index] = true;
   }
 
   @override
@@ -229,38 +207,41 @@ class _MinesweeperGameUIState extends State<MinesweeperGameUI> {
     List<bool> revealed = List<bool>.from(widget.data['state']['revealed']);
     List<bool> grid = List<bool>.from(widget.data['state']['grid']);
 
-    return Center(
-      child: Container(
-        width: 350, height: 350,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.greenAccent), borderRadius: BorderRadius.circular(20)),
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 25,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 5, mainAxisSpacing: 5),
-          itemBuilder: (ctx, i) {
-            bool isRevealed = revealed[i];
-            bool isBomb = grid[i];
-            
-            return GestureDetector(
-              onTap: () => _handleTap(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                decoration: BoxDecoration(
-                  color: isRevealed 
-                      ? (isBomb ? Colors.red : Colors.grey[800]) 
-                      : Colors.greenAccent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: isRevealed ? Colors.transparent : Colors.greenAccent.withOpacity(0.5))
+    return ArcadeWrapper(
+      title: "MINESWEEPER",
+      instructions: "• Reveal tiles without hitting a mine.\n• Numbers indicate adjacent mines.\n• Flag or avoid all mines to win.",
+      data: widget.data,
+      controller: widget.controller,
+      gameUI: Center(
+        child: Container(
+          width: 350, height: 350,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.greenAccent), borderRadius: BorderRadius.circular(20)),
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 25,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 5, mainAxisSpacing: 5),
+            itemBuilder: (ctx, i) {
+              bool isRevealed = revealed[i];
+              bool isBomb = grid[i];
+              return GestureDetector(
+                onTap: () => _handleTap(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    color: isRevealed ? (isBomb ? Colors.red : Colors.grey[800]) : Colors.greenAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: isRevealed ? Colors.transparent : Colors.greenAccent.withOpacity(0.5))
+                  ),
+                  child: Center(
+                    child: isRevealed 
+                      ? (isBomb ? const Icon(Icons.dangerous, color: Colors.black) : const Icon(Icons.check, color: Colors.white24, size: 15))
+                      : null,
+                  ),
                 ),
-                child: Center(
-                  child: isRevealed 
-                    ? (isBomb ? const Icon(Icons.dangerous, color: Colors.black) : const Icon(Icons.check, color: Colors.white24, size: 15))
-                    : null,
-                ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -285,21 +266,15 @@ class _WordleGameUIState extends State<WordleGameUI> {
 
   void _submitGuess() {
     if (widget.data['winner'] != null) return;
-    
     String guess = _textCtrl.text.toUpperCase();
-    if (guess.length != 4) return; // Enforce 4 letters
-
+    if (guess.length != 4) return;
     String target = widget.data['state']['word'] ?? 'CODE';
     List<dynamic> guesses = List.from(widget.data['state']['guesses']);
-    
     guesses.add(guess);
     _textCtrl.clear();
-
     String? winner;
-    if (guess == target) {
-      winner = widget.controller.myId;
-    } else if (guesses.length >= 6) winner = 'AI'; // Lose condition
-
+    if (guess == target) winner = widget.controller.myId;
+    else if (guesses.length >= 6) winner = 'AI';
     widget.controller.updateGame({'guesses': guesses}, mergeWinner: winner);
   }
 
@@ -308,50 +283,48 @@ class _WordleGameUIState extends State<WordleGameUI> {
     String target = widget.data['state']['word'] ?? 'CODE';
     List<dynamic> guesses = widget.data['state']['guesses'];
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: 6, // Max 6 guesses
-            itemBuilder: (ctx, i) {
-              if (i < guesses.length) {
-                return _buildRow(guesses[i], target);
-              } else {
-                return _buildEmptyRow();
-              }
-            },
+    return ArcadeWrapper(
+      title: "WORDLE",
+      instructions: "• Guess the 4-letter secret word.\n• Green: Right letter, Right spot.\n• Yellow: Right letter, Wrong spot.\n• Grey: Letter not in word.",
+      data: widget.data,
+      controller: widget.controller,
+      gameUI: Column(
+        children: [
+          const SizedBox(height: 60),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: 6,
+              itemBuilder: (ctx, i) => i < guesses.length ? _buildRow(guesses[i], target) : _buildEmptyRow(),
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _textCtrl,
-                  maxLength: 4,
-                  style: const TextStyle(color: Colors.white, letterSpacing: 5, fontWeight: FontWeight.bold),
-                  decoration: const InputDecoration(
-                    hintText: "TYPE 4 LETTERS",
-                    hintStyle: TextStyle(letterSpacing: 1, fontSize: 12),
-                    counterText: "",
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white10
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _textCtrl,
+                    maxLength: 4,
+                    style: const TextStyle(color: Colors.white, letterSpacing: 5, fontWeight: FontWeight.bold),
+                    decoration: const InputDecoration(
+                      hintText: "TYPE 4 LETTERS",
+                      filled: true,
+                      fillColor: Colors.white10
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              IconButton.filled(
-                onPressed: _submitGuess, 
-                icon: const Icon(Icons.send),
-                style: IconButton.styleFrom(backgroundColor: Colors.greenAccent),
-              )
-            ],
-          ),
-        )
-      ],
+                const SizedBox(width: 10),
+                IconButton.filled(
+                  onPressed: _submitGuess, 
+                  icon: const Icon(Icons.send),
+                  style: IconButton.styleFrom(backgroundColor: Colors.greenAccent),
+                )
+              ],
+            ),
+          )
+        ],
+      ),
     );
   }
 
@@ -361,18 +334,12 @@ class _WordleGameUIState extends State<WordleGameUI> {
       children: List.generate(4, (i) {
         String char = guess[i];
         Color color = Colors.grey;
-        if (target[i] == char) {
-          color = Colors.green;
-        } else if (target.contains(char)) color = Colors.amber;
-        
+        if (target[i] == char) color = Colors.green;
+        else if (target.contains(char)) color = Colors.amber;
         return Container(
           margin: const EdgeInsets.all(5),
           width: 50, height: 50,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)]
-          ),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
           child: Center(child: Text(char, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black))),
         );
       }),
@@ -385,10 +352,7 @@ class _WordleGameUIState extends State<WordleGameUI> {
       children: List.generate(4, (i) => Container(
         margin: const EdgeInsets.all(5),
         width: 50, height: 50,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.white24),
-          borderRadius: BorderRadius.circular(10)
-        ),
+        decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(10)),
       )),
     );
   }

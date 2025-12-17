@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 // =============================================================================
-// 1. GAME CONTROLLER (Interfaces)
+// 1. GAME CONTROLLER (Interfaces with Sync & Lock Logic)
 // =============================================================================
 
 abstract class GameController {
@@ -16,22 +16,34 @@ class LocalGameController extends GameController {
   @override String get myId => 'P1';
   final Function(Map<String, dynamic>) onUpdate;
   final VoidCallback onReset;
+  
+  // Track local win status to prevent late moves
+  bool _isLocked = false;
+
   LocalGameController(this.onUpdate, this.onReset);
 
   @override
   void updateGame(Map<String, dynamic> data, {String? mergeWinner}) {
-    // ✅ CRITICAL FIX: Prefix keys with 'state.' so the UI sees them!
+    // Check if game is already locked by a winner
+    if (_isLocked) return;
+
     Map<String, dynamic> update = {};
     data.forEach((key, value) {
       update['state.$key'] = value;
     });
     
-    if (mergeWinner != null) update['winner'] = mergeWinner;
+    // Instant Validation: If a winner is passed, we lock it immediately
+    if (mergeWinner != null) {
+      update['winner'] = mergeWinner;
+      _isLocked = true;
+    }
+    
     onUpdate(update);
   }
 
   @override
   void requestRematch() {
+    _isLocked = false;
     onReset();
   }
 }
@@ -46,14 +58,31 @@ class OnlineGameController extends GameController {
   @override String get myId => userId;
 
   @override
-  void updateGame(Map<String, dynamic> data, {String? mergeWinner}) {
+  void updateGame(Map<String, dynamic> data, {String? mergeWinner}) async {
+    // RACE CONDITION FIX: Check Firestore for an existing winner before updating
+    final docRef = FirebaseFirestore.instance.collection('games').doc(gameId);
+    final docSnapshot = await docRef.get();
+    
+    if (docSnapshot.exists && docSnapshot.data()?['winner'] != null) {
+      // Game is already over; ignore any late incoming moves
+      return;
+    }
+
     Map<String, dynamic> update = {};
     data.forEach((key, value) {
       update['state.$key'] = value;
     });
-    if (mergeWinner != null) update['winner'] = mergeWinner;
     
-    FirebaseFirestore.instance.collection('games').doc(gameId).update(update);
+    if (mergeWinner != null) {
+      update['winner'] = mergeWinner;
+    }
+    
+    // Perform the update
+    try {
+      await docRef.update(update);
+    } catch (e) {
+      debugPrint("Update failed: $e");
+    }
   }
 
   @override
@@ -87,7 +116,14 @@ Map<String, dynamic> getInitialGameState(String type, String hostId) {
   if (type == 'tictactoe') return {'board': List.filled(9, ''), 'turn': hostId};
   if (type == 'connect4') return {'board': List.filled(42, ''), 'turn': hostId};
   if (type == 'snake') return {'p1Score': -1, 'p2Score': aiTarget > 0 ? aiTarget : -1};
-  if (type == 'rps') return {'p1Move': '', 'p2Move': ''};
+  if (type == 'rps') return {
+  'p1Move': '', 
+  'p2Move': '', 
+  'p1Score': 0, 
+  'p2Score': 0, 
+  'round': 1,
+  'turn': hostId
+};
   if (type == 'gomoku') return {'board': List.filled(100, ''), 'turn': hostId};
   if (type == 'guessnum') return {'target': -1, 'guesses': [], 'host': hostId, 'turn': hostId};
   if (type == 'simon') return {'sequence': [], 'userStep': 0, 'active': true, 'turn': 'AI'}; 
