@@ -2,7 +2,6 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,10 +11,11 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with TickerProviderStateMixin {
   bool _isLoading = false;
-  
-  // Animation Controllers
+
+  // Animation
   late AnimationController _bgCtrl;
   final List<LoginStar> _stars = [];
   final Random _rng = Random();
@@ -23,14 +23,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    // Initialize Starfield
-    _bgCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
+    _bgCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 20))
+          ..repeat();
+
     for (int i = 0; i < 60; i++) {
       _stars.add(LoginStar(
         x: _rng.nextDouble(),
         y: _rng.nextDouble(),
         size: _rng.nextDouble() * 2 + 1,
-        speed: _rng.nextDouble() * 0.05 + 0.01
+        speed: _rng.nextDouble() * 0.05 + 0.01,
       ));
     }
   }
@@ -41,59 +43,37 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  Future<void> _signInWithGoogle() async {
+  /// Anonymous login (temporary & safe)
+  Future<void> _enterTrivve() async {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Trigger Google Sign In flow
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
-        return; // User canceled
-      }
+      final userCred = await FirebaseAuth.instance.signInAnonymously();
+      final user = userCred.user;
 
-      // 2. Obtain auth details
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      if (user != null) {
+        final ref =
+            FirebaseFirestore.instance.collection('users').doc(user.uid);
 
-      // 3. Create credential
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // 4. Sign in to Firebase
-      UserCredential userCred = await FirebaseAuth.instance.signInWithCredential(credential);
-      
-      // 5. Create/Update User Doc in Firestore (Essential for your app logic)
-      if (userCred.user != null) {
-        DocumentReference ref = FirebaseFirestore.instance.collection('users').doc(userCred.user!.uid);
-        var doc = await ref.get();
-        
-        if (!doc.exists) {
-          // New User Setup
+        final snap = await ref.get();
+        if (!snap.exists) {
           await ref.set({
-            'uid': userCred.user!.uid,
-            'email': userCred.user!.email,
-            'displayName': userCred.user!.displayName,
-            'photoUrl': userCred.user!.photoURL,
+            'uid': user.uid,
             'createdAt': FieldValue.serverTimestamp(),
-            'aura': 100, // Starter bonus
-            'xp': 0,
-            'gamesPlayed': 0,
-            'wins': 0,
-            'ownedItems': [],
           });
         }
       }
-
     } catch (e) {
-      if(mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.red)
+          SnackBar(
+            content: Text("Login failed: $e"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
-      if(mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -103,100 +83,108 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. ANIMATED BACKGROUND
+          // Animated background
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _bgCtrl,
-              builder: (ctx, child) => CustomPaint(painter: LoginStarPainter(_stars, _bgCtrl.value)),
+              builder: (_, __) =>
+                  CustomPaint(painter: LoginStarPainter(_stars, _bgCtrl.value)),
             ),
           ),
 
-          // 2. MAIN CONTENT
+          // Main UI
           Center(
             child: Padding(
-              padding: const EdgeInsets.all(30.0),
+              padding: const EdgeInsets.all(30),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Spacer(),
-                  
-                  // APP LOGO / TITLE
+
+                  // Logo
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.cyanAccent.withOpacity(0.3), blurRadius: 50, spreadRadius: 10)]
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.cyanAccent.withOpacity(0.3),
+                          blurRadius: 50,
+                          spreadRadius: 10,
+                        )
+                      ],
                     ),
-                    child: const Icon(Icons.hub, size: 80, color: Colors.cyanAccent),
+                    child: const Icon(Icons.hub,
+                        size: 80, color: Colors.cyanAccent),
                   ),
+
                   const SizedBox(height: 20),
+
                   const Text(
                     "TRIVVE",
                     style: TextStyle(
-                      fontFamily: 'Courier', 
-                      fontSize: 40, 
-                      fontWeight: FontWeight.w900, 
-                      color: Colors.white, 
+                      fontSize: 40,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
                       letterSpacing: 5,
-                      shadows: [Shadow(color: Colors.cyanAccent, blurRadius: 20)]
+                      shadows: [
+                        Shadow(color: Colors.cyanAccent, blurRadius: 20)
+                      ],
                     ),
                   ),
-                  const Text(
-                    "THE SOCIAL ARCADE",
-                    style: TextStyle(color: Colors.grey, letterSpacing: 3, fontSize: 12),
-                  ),
 
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 50),
 
-                  // GOOGLE LOGIN BUTTON
                   if (_isLoading)
                     const CircularProgressIndicator(color: Colors.cyanAccent)
                   else
                     SizedBox(
                       width: double.infinity,
                       height: 55,
-                      child: ElevatedButton.icon(
-                        onPressed: _signInWithGoogle,
-                        icon: Image.network("https://img.icons8.com/color/48/google-logo.png", height: 24),
-                        label: const Text("CONTINUE WITH GOOGLE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: ElevatedButton(
+                        onPressed: _enterTrivve,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                          elevation: 10,
-                          shadowColor: Colors.white.withOpacity(0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: const Text(
+                          "ENTER TRIVVE",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
 
                   const Spacer(),
 
-                  // 3. THE SAFE NOTE (Your Request)
+                  // Safe note
                   ClipRRect(
                     borderRadius: BorderRadius.circular(15),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      filter:
+                          ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.white10)
+                          border: Border.all(color: Colors.white10),
                         ),
-                        child: Row(
+                        child: const Row(
                           children: [
-                            const Icon(Icons.security, color: Colors.greenAccent, size: 30),
-                            const SizedBox(width: 15),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text("SECURE LOGIN ENVIRONMENT", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    "Developed by a Computer Science Engineer. We use Google's Official Secure Servers. Your credentials never touch our database.",
-                                    style: TextStyle(color: Colors.white70, fontSize: 10, height: 1.2),
-                                  ),
-                                ],
+                            Icon(Icons.security,
+                                color: Colors.greenAccent, size: 30),
+                            SizedBox(width: 15),
+                            Expanded(
+                              child: Text(
+                                "Secure access. No passwords stored. Identity protected.",
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 11),
                               ),
                             )
                           ],
@@ -204,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
                 ],
               ),
@@ -215,17 +204,34 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 }
 
-// --- LOGIN STAR SYSTEM (Independent) ---
-class LoginStar { double x, y, size, speed; LoginStar({required this.x, required this.y, required this.size, required this.speed}); }
+// ---- STARFIELD ----
+class LoginStar {
+  double x, y, size, speed;
+  LoginStar(
+      {required this.x,
+      required this.y,
+      required this.size,
+      required this.speed});
+}
+
 class LoginStarPainter extends CustomPainter {
-  final List<LoginStar> stars; final double anim; LoginStarPainter(this.stars, this.anim);
-  @override void paint(Canvas c, Size s) {
-    Paint p = Paint()..color = Colors.white;
+  final List<LoginStar> stars;
+  final double anim;
+
+  LoginStarPainter(this.stars, this.anim);
+
+  @override
+  void paint(Canvas c, Size s) {
+    final paint = Paint();
     for (var st in stars) {
-      double y = (st.y + (anim * st.speed)) % 1.0;
-      p.color = Colors.white.withOpacity(0.3 + (sin(anim * 6 + st.x * 10) + 1) / 4);
-      c.drawCircle(Offset(st.x * s.width, y * s.height), st.size, p);
+      final y = (st.y + anim * st.speed) % 1.0;
+      paint.color =
+          Colors.white.withOpacity(0.3 + (sin(anim * 6) + 1) / 4);
+      c.drawCircle(
+          Offset(st.x * s.width, y * s.height), st.size, paint);
     }
   }
-  @override bool shouldRepaint(old) => true;
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:trivve/main.dart'; 
+import 'package:trivve/main.dart';
 
 class UsernameSetupScreen extends StatefulWidget {
   const UsernameSetupScreen({super.key});
@@ -15,87 +15,84 @@ class _UsernameSetupScreenState extends State<UsernameSetupScreen> {
   final _controller = TextEditingController();
   bool _isLoading = false;
   String _statusMessage = "";
-  bool _showForceSave = false; 
+  bool _allowSaveAnyway = false;
 
-  Future<void> _submitUsername({bool force = false}) async {
-    String username = _controller.text.trim().toLowerCase(); 
-    
-    if (username.isEmpty || username.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Username too short!")));
+  Future<void> _submitUsername({bool skipCheck = false}) async {
+    final username = _controller.text.trim().toLowerCase();
+
+    if (username.length < 3) {
+      _showSnack("Username must be at least 3 characters");
       return;
     }
 
-    final validCharacters = RegExp(r'^[a-zA-Z0-9_]+$');
-    if (!validCharacters.hasMatch(username)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid characters. Use letters & numbers only.")));
+    if (!RegExp(r'^[a-z0-9_]+$').hasMatch(username)) {
+      _showSnack("Only letters, numbers and underscores allowed");
       return;
     }
 
-    setState(() { 
-      _isLoading = true; 
-      _statusMessage = "Checking availability..."; 
-      _showForceSave = false;
+    setState(() {
+      _isLoading = true;
+      _statusMessage = "Checking availability…";
+      _allowSaveAnyway = false;
     });
 
     try {
-      if (!force) {
-        // 1. CHECK UNIQUENESS
-        final query = await FirebaseFirestore.instance
+      if (!skipCheck) {
+        final check = await FirebaseFirestore.instance
             .collection('users')
             .where('username', isEqualTo: username)
             .get()
             .timeout(const Duration(seconds: 4));
 
-        if (query.docs.isNotEmpty) {
+        if (check.docs.isNotEmpty) {
           setState(() {
             _isLoading = false;
-            _statusMessage = "❌ Username taken.";
+            _statusMessage = "This username is already taken";
           });
           return;
         }
       }
 
-      // 2. SAVE TO DATABASE (CRITICAL FIX HERE)
-      setState(() => _statusMessage = "Saving identity...");
-      
-      User user = FirebaseAuth.instance.currentUser!;
-      
-      // ✅ FIX: Use .set with merge: true instead of .update
-      // This creates the document if it was missing!
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'username': username,
-        'usernameSet': true, 
-        'displayName': (user.displayName == null || user.displayName == "Unknown Agent") 
-            ? username 
-            : user.displayName,
-        'email': user.email,     // Ensure these exist
-        'photoUrl': user.photoURL,
+      setState(() => _statusMessage = "Saving your profile…");
+
+      final user = FirebaseAuth.instance.currentUser!;
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
         'uid': user.uid,
-      }, SetOptions(merge: true)); 
+        'username': username,
+        'usernameSet': true,
+        'displayName': user.displayName ?? username,
+        'email': user.email,
+        'photoUrl': user.photoURL,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
-      // 3. SUCCESS NAVIGATE
-      setState(() => _statusMessage = "Success! Entering Trivve...");
-      if(mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const TrivveApp()),
-          (route) => false
-        );
-      }
-
-    } on TimeoutException catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const TrivveApp()),
+        (_) => false,
+      );
+    } on TimeoutException {
       setState(() {
         _isLoading = false;
-        _statusMessage = "⚠️ Connection Slow. Skip check?";
-        _showForceSave = true; 
+        _statusMessage = "Connection seems slow.";
+        _allowSaveAnyway = true;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
         _isLoading = false;
-        _statusMessage = "Error: $e";
-        _showForceSave = true; 
+        _statusMessage = "Something went wrong. Please try again.";
+        _allowSaveAnyway = true;
       });
-      print("ERROR LOG: $e");
     }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override
@@ -103,63 +100,105 @@ class _UsernameSetupScreenState extends State<UsernameSetupScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Padding(
-        padding: const EdgeInsets.all(30.0),
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.fingerprint, size: 80, color: Colors.cyanAccent),
-            const SizedBox(height: 20),
+            const Icon(Icons.person_outline,
+                size: 72, color: Colors.cyanAccent),
+            const SizedBox(height: 24),
+
             const Text(
-              "IDENTITY REQUIRED",
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Choose a unique Agent ID.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: _controller,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: "username",
-                hintStyle: TextStyle(color: Colors.grey[800]),
-                filled: true,
-                fillColor: Colors.grey[900],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.cyanAccent)),
+              "Choose your username",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 20),
-            
-            Text(_statusMessage, style: TextStyle(color: _statusMessage.startsWith("Error") || _statusMessage.startsWith("❌") ? Colors.red : Colors.cyanAccent)),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+            const Text(
+              "This will be visible to others on Trivve.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54),
+            ),
 
-            if (_showForceSave)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 15.0),
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                  icon: const Icon(Icons.warning, color: Colors.white),
-                  label: const Text("FORCE SAVE (FIX ERROR)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  onPressed: () => _submitUsername(force: true),
+            const SizedBox(height: 36),
+
+            TextField(
+              controller: _controller,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                hintText: "username",
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.06),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide:
+                      const BorderSide(color: Colors.cyanAccent),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            Text(
+              _statusMessage,
+              style: TextStyle(
+                color: _statusMessage.contains("wrong")
+                    ? Colors.redAccent
+                    : Colors.cyanAccent,
+                fontSize: 12,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            if (_allowSaveAnyway)
+              TextButton(
+                onPressed: () => _submitUsername(skipCheck: true),
+                child: const Text(
+                  "Save anyway",
+                  style: TextStyle(color: Colors.orangeAccent),
                 ),
               ),
 
+            const SizedBox(height: 10),
+
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent),
-                onPressed: _isLoading ? null : () => _submitUsername(force: false),
-                child: _isLoading 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                  : const Text("CONFIRM IDENTITY", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                onPressed: _isLoading ? null : _submitUsername,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyanAccent,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Text(
+                        "Continue",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
-            )
+            ),
           ],
         ),
       ),
