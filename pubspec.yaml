@@ -1,60 +1,22 @@
 name: trivve
-description: A social arcade and mapping app.
-publish_to: 'none'
-version: 1.0.1+2
+description: A real-time college & city discovery app
+publish_to: "none"
+
+version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  # Map & Location
-  flutter_map: ^8.2.2
-  latlong2: ^0.9.1
-  geolocator: ^14.0.1
-  url_launcher: ^6.2.0
-  google_maps_flutter: ^2.10.0
 
-  # Firebase
-  firebase_core: ^4.2.1
-  firebase_auth: ^6.1.2
-  cloud_firestore: ^6.1.0
-  google_sign_in: ^6.2.1 # <--- THIS IS THE ONLY NEW LINE
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.5.0
 
-  # UI & Utilities
-  confetti: ^0.8.0
-  share_plus: ^12.0.1
-  google_generative_ai: ^0.4.6
-  cupertino_icons: ^1.0.8
-  package_info_plus: ^9.0.0
   google_fonts: ^6.2.1
-  timeago: ^3.6.1
-
-  # Media (Camera & Images)
-  image_picker: ^1.0.7
-  flutter_image_compress: ^2.1.0
-  cached_network_image: ^3.3.1
-  google_mobile_ads: ^5.1.0
-  change_app_package_name: ^1.5.0
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^6.0.0
-  # ✅ The icon tool is added correctly here
-  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
-
-# ✅ Configuration for the tool
-# ✅ Configuration for the tool
-flutter_launcher_icons:
-  android: "ic_launcher"
-  ios: true
-  image_path: "assets/ic_launcher.png"             # <--- Points to icon.png
-  min_sdk_android: 21
-  adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/ic_launcher.png"
